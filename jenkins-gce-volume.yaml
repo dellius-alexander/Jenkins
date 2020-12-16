@@ -1,0 +1,49 @@
+# Please see the link below for more details about configuration options:
+# https://cloud.google.com/kubernetes-engine/docs/concepts/persistent-volumes
+# https://kubernetes.io/docs/concepts/storage/storage-classes/#gce-pd
+# https://kubernetes.io/docs/concepts/storage/volumes/#gcepersistentdisk
+# RUN "jenkins.rbac.yaml" FIRST
+---
+
+allowVolumeExpansion: true
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: master-1-storage
+  selfLink: /apis/storage.k8s.io/v1/storageclasses/standard
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "true"
+  labels:
+    addonmanager.kubernetes.io/mode: EnsureExists
+parameters:
+  type: pd-standard
+  fstype: ext4
+  replication-type: none
+provisioner: kubernetes.io/gce-pd
+reclaimPolicy: Delete
+volumeBindingMode: Immediate
+
+---
+# GKE - PersistentVolumeClaim
+# Most of the time, you don't need to directly configure PersistentVolume 
+# objects or create Compute Engine persistent disks. Instead, you can create a 
+# PersistentVolumeClaim and Kubernetes automatically provisions a persistent 
+# disk for you. When you create this PersistentVolumeClaim with 
+# kubectl apply -f jenkins-gce-volume.yaml, Kubernetes dynamically creates a 
+# corresponding PersistentVolume object.
+# ****** NOTE: once created a PVC is immutable after creation except resources. 
+# requests for bound claims
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: jenkins-pvc
+  namespace: jenkins
+spec:
+  storageClassName: jenkins-storage
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 20Gi
