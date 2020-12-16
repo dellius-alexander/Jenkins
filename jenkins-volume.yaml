@@ -1,0 +1,51 @@
+# https://github.com/marcel-dempers/docker-development-youtube-series/tree/master/jenkins
+# RUN "jenkins.rbac.yaml" FIRST
+---
+
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name:  jenkins-storage
+provisioner: kubernetes.io/no-provisioner
+volumeBindingMode: WaitForFirstConsumer
+reclaimPolicy: Delete
+
+
+---
+
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: jenkins-pv
+  namespace: jenkins
+  labels:
+    type: local
+spec:
+  storageClassName: jenkins-storage
+  claimRef:
+    name: jenkins-pvc
+    namespace: jenkins
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+  # Linux hostPath
+    path: "/mnt/nfs/jenkins_data"
+
+
+---
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: jenkins-pvc
+  namespace: jenkins
+spec:
+  storageClassName: jenkins-storage
+  volumeName: jenkins-pv
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi

@@ -1,0 +1,196 @@
+---
+
+##########################################################################
+# Hostname wildcards 
+# Hosts can be precise matches (for example “foo.bar.com”) or a wildcard 
+# (for example “*.foo.com”). Precise matches require that the HTTP host 
+# header matches the host field. Wildcard matches require the HTTP host 
+# header is equal to the suffix of the wildcard rule.
+#
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ingress-wildcard-host
+spec:
+  rules:
+  - host: "*.dellius.app"
+    http:
+      paths:
+      - pathType: ImplementationSpecific
+        path: 10.0.0.129
+        backend:
+          service:
+            name: jenkins
+            port:
+              number: 32307
+
+
+---
+
+
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: jenkins
+  namespace: jenkins
+spec:
+  backend:
+    serviceName: jenkins
+    servicePort: 80
+
+
+    
+---
+
+
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: minimal-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  rules:
+  - http:
+      paths:
+      - path: /testpath
+        pathType: Prefix
+        backend:
+          service:
+            name: test
+            port:
+              number: 80
+
+
+---
+
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ingress-wildcard-host
+  namespace: jenkins
+spec:
+  rules:
+  - host: "jenkins.dellius.app"
+    http:
+      paths:
+      - pathType:  ImplementationSpecific
+        path: /
+        backend:
+          service:
+          - name: jenkins
+            port:
+              number: 8080
+          # - name: jenkins-svc
+          #   port:
+          #     number: 32307
+
+---
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: minimal-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  rules:
+  - http:
+      paths:
+      - path: /
+        pathType: 
+        backend:
+          service:
+            name: test
+            port:
+              number: 80
+
+---
+
+##########################################################################
+# Ingress backed by a single Service 
+#
+# There are existing Kubernetes concepts that allow you to expose a single 
+# Service (see alternatives). You can also do this with an Ingress by 
+# specifying a default backend with no rules.
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: jenkins-ingress
+  namespace: jenkins
+spec:
+  defaultBackend:
+    service:
+      name: jenkins
+      port:
+        number: 80
+
+---
+
+##########################################################################
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: simple-fanout-example
+spec:
+  rules:
+  - host: jenkins.dellius.app
+    http:
+      paths:
+      - path: /foo
+        pathType: Prefix
+        backend:
+          service:
+            name: service1
+            port:
+              number: 4200
+      - path: /bar
+        pathType: Prefix
+        backend:
+          service:
+            name: service2
+            port:
+              number: 8080
+
+
+# ---
+
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: jenkins-ui-ingress
+  namespace: jenkins
+  annotations:
+    kubernetes.io/ingress.class: nginx    
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/scheme: internet-facing
+    nginx.ingress.kubernetes.io/listen-ports: '[{"HTTPS": 443, "HTTP": 80}]'
+    nginx.ingress.kubernetes.io/target-type: ip
+    nginx.ingress.kubernetes.io/actions.redirect-blueocean: '{"Type": "redirect", "RedirectConfig": { "Protocol": "HTTPS", "Port": "443", "Path": "/blue/pipelines", "Query": "#{query}", "StatusCode": "HTTP_301"}}'
+spec:
+  rules:
+  # Here is where you put your domain ex: jenkins.rocks
+  - host: jenkins.dellius.app
+    http:
+      paths:
+      - path: /login
+        pathType: Prefix
+        backend:
+          service:
+            name: jenkins-svc
+            port: 
+              name: ui
+      - path: /*
+        pathType: Prefix
+        backend:
+          service:
+            name: jenkins-svc
+            port: 
+              name: http
+
+

@@ -1,0 +1,292 @@
+# https://github.com/marcel-dempers/docker-development-youtube-series/tree/master/jenkins
+# RUN "jenkins-rbac.yaml" FIRST
+---
+
+#####################################################################
+# https://cloud.google.com/kubernetes-engine/docs/how-to/horizontal-pod-autoscaling?hl=en#create_the_example_deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jenkins-deployment
+  namespace: jenkins
+  labels:
+    app: jenkins
+    tier: frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: jenkins
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: jenkins
+        tier: frontend
+    spec:
+      serviceAccountName: jenkins
+      containers:
+      - name: jenkins
+        image: dalexander2israel/jenkins:lts-centos
+        imagePullPolicy: Always
+        resources:
+          limits:
+            memory: 2048Mi
+            cpu: 512m
+          requests:
+            cpu: 256m
+            memory: 1024Mi
+        env:
+        - name: DOCKER_HOST
+          value: unix:///var/run/docker.sock
+        - name: PROJECT_REPO_MAIN
+          value: https://github.com/dellius-alexander/Testing-Strategy.git
+        - name: JAVA_OPTS
+          value: -Xmx2048m -Dhudson.slaves.NodeProvisioner.MARGIN=50 -Dhudson.slaves.NodeProvisioner.MARGIN0=0.85 
+        - name: JENKINS_UC
+          value: https://updates.jenkins.io/update-center.json
+        ports:
+        - containerPort: 8080
+          protocol: TCP
+        - containerPort: 50000
+          protocol: TCP
+        - containerPort: 80
+          protocol: TCP
+        volumeMounts:
+        - mountPath: /var/jenkins_home
+          name: jenkins
+        - mountPath: /var/run/docker.sock
+          name: docker-sock-volume
+      restartPolicy: Always
+      securityContext:
+        runAsUser: 0
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - name: jenkins
+        persistentVolumeClaim:    # Data is persisted across pod failures
+          claimName: jenkins-pvc
+      - name: docker-sock-volume
+        hostPath:
+          path: /var/run/docker.sock
+      # emptyDir volumes will not persist Pod crashes, so we only use this
+      # option for just testing purposes.
+      # - name: jenkins
+      #   emptyDir: {}  # Data is not persisted across pod failures
+
+
+---
+
+#####################################################################
+# https://cloud.google.com/kubernetes-engine/docs/how-to/horizontal-pod-autoscaling?hl=en#kubectl-apply
+apiVersion: autoscaling/v1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: jenkins-autoscaler
+  namespace: jenkins
+  labels:
+    app: jenkins
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: jenkins-deployment
+  maxReplicas: 5
+  minReplicas: 1
+  targetCPUUtilizationPercentage: 50
+status:
+  observedGeneration: 1
+  currentReplicas: 1
+  desiredReplicas: 1
+
+---
+
+#####################################################################
+# See Creating Services: (exposing-apps#kubectl-apply_2)
+# https://cloud.google.com/kubernetes-engine/docs/how-to/exposing-apps#creating_a_service_of_type_clusterip
+# https://cloud.google.com/load-balancing/docs/internal?_ga=2.96341535.-2000425850.1599836766#health_check_firewall_rules
+# https://cloud.google.com/dns/docs/dnssec?_ga=2.96396831.-2000425850.1599836766
+apiVersion: v1
+kind: Service
+metadata:
+  name: jenkins-svc
+  namespace: jenkins
+  labels:
+    app: jenkins
+  annotations:
+    cloud.google.com/neg: '{"ingress": true}'
+  finalizers:
+  - service.kubernetes.io/load-balancer-cleanup
+  selfLink: /api/v1/namespaces/jenkins/services/jenkins-svc
+spec:
+  externalTrafficPolicy: Cluster
+  ports:
+  - name: ui
+    nodePort: 31297
+    port: 8080
+    protocol: TCP
+    targetPort: 8080
+  - name: slave
+    nodePort: 32739
+    port: 50000
+    protocol: TCP
+    targetPort: 50000
+  - name: http
+    nodePort: 31388
+    port: 80
+    protocol: TCP
+    targetPort: 80
+  selector:
+    app: jenkins
+  sessionAffinity: None
+  type: LoadBalancer
+status:
+  loadBalancer:
+    ingress:
+    # IP Address will be supplied automatically upon provisioning or you may provide your own private IP
+    #   Address previous within google cloud via Cloud DNS or CDN, etc...
+    - ip: ""
+
+# CONNECTING TO YOUR SERVICE:
+# First find the external-ip address with:
+# $ kubectl get nodes --output wide
+# Remember to expose your service to the internet: 
+# $ gcloud compute firewall-rules create jenkins-node-port --allow tcp:8080
+# In your browser's address bar, enter the following:
+# node-ip-address:node-port
+#####################################################################
+
+#---
+
+#####################################################################
+# apiVersion: v1
+# kind: Service
+# metadata:
+#   name: jenkins-svc
+#   namespace: jenkins
+#   annotations:
+#     cloud.google.com/neg: '{"ingress": true}'
+#   labels:
+#     app: jenkins
+# spec:
+#   selector:
+#     app: jenkins
+#   type: LoadBalancer
+#   ports:
+#     - name: ui
+#       port: 8080
+#       targetPort: 8080      
+#       protocol: TCP
+#     - name: slave
+#       port: 50000
+#       targetPort: 50000
+#     - name: http
+#       port: 80
+#       targetPort: 80
+
+#####################################################################
+
+#---
+
+#####################################################################
+# # INGRESS RESOURCE:
+# # https://cloud.google.com/kubernetes-engine/docs/concepts/ingress-xlb#static_ip_addresses_for_https_load_balancers
+# # https://cloud.google.com/kubernetes-engine/docs/how-to/exposing-apps#kubectl-apply_2
+# # https://cloud.google.com/kubernetes-engine/docs/concepts/ingress
+# # https://cloud.google.com/kubernetes-engine/docs/concepts/network-overview
+# apiVersion: networking.k8s.io/v1beta1
+# kind: Ingress
+# metadata:
+#   name: master-1-ingress
+#   namespace: jenkins
+#   annotations:
+#     kubernetes.io/ingress.class: "gce-internal"
+# spec:
+#   rules:
+#   - host: jenkins.dellius.app
+#     http:
+#       paths:
+#       - path: /*
+#         backend:
+#           serviceName: jenkins-svc
+#           servicePort: 8080
+
+#####################################################################
+
+#####################################################################
+# # Ingress Configuration for controller Option 1
+# apiVersion: networking.k8s.io/v1
+# kind: Ingress
+# metadata:
+#   name: jenkins-ingress
+#   namespace: jenkins
+#   annotations:
+#     kubernetes.io/ingress.class: "nginx"
+#     certmanager.k8s.io/cluster-issuer: letsencrypt-prod
+#     nginx.ingress.kubernetes.io/rewrite-target: /
+#     nginx.ingress.kubernetes.io/cors-allow-credentials: "true"
+#     nginx.ingress.kubernetes.io/cors-allow-headers: Authorization, origin, accept
+#     nginx.ingress.kubernetes.io/cors-allow-methods: GET, OPTIONS
+#     nginx.ingress.kubernetes.io/enable-cors: "true"
+#     nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
+#     nginx.ingress.kubernetes.io/affinity: "cookie"
+#     nginx.ingress.kubernetes.io/session-cookie-name: "route"
+#     nginx.ingress.kubernetes.io/session-cookie-hash: "sha1"
+# spec:
+#   # tls:
+#   # - hosts:
+#   #   - jenkins.dellius.app
+#   #   secretName: tls-secret-jenkins
+#   rules:
+#   - host: jenkins.dellius.app
+#     http:
+#       paths:
+#       - path: /login
+#         pathType: Prefix
+#         backend:
+#           service:
+#             name: jenkins-svc
+#             port: 
+#               name: ui
+#       - path: /*
+#         pathType: Prefix
+#         backend:
+#           service:
+#             name: jenkins-svc
+#             port: 
+#               name: http
+
+#####################################################################
+
+# ---
+
+#####################################################################
+# # Ingress Configuration for controller Option 2
+# apiVersion: networking.k8s.io/v1
+# kind: Ingress
+# metadata:
+#   name: jenkins-ingress
+#   Namespace: jenkins
+#   annotations:
+#     nginx.ingress.kubernetes.io/rewrite-target: /
+#     nginx.ingress.kubernetes.io/cors-allow-credentials: "true"
+#     nginx.ingress.kubernetes.io/cors-allow-headers: Authorization, origin, accept
+#     nginx.ingress.kubernetes.io/cors-allow-methods: GET, OPTIONS
+#     nginx.ingress.kubernetes.io/enable-cors: "true"
+# spec:
+#   rules:
+#   - host: jenkins.dellius.app
+#     http:
+#       paths:
+#       - path: /login
+#         pathType: Prefix
+#         backend:
+#           service:
+#             name: jenkins-svc
+#             port: 
+#               name: ui
+
+#####################################################################
