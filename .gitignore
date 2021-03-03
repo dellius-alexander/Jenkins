@@ -1,6 +1,5 @@
 # Remove Files
-plugins/
-
+jenkinsfile.example
 
 # Remove Directories
 
