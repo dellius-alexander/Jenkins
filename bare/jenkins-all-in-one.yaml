@@ -76,7 +76,7 @@ spec:
   accessModes:
     - ReadWriteOnce
   hostPath:
-    path: "/mnt/nfs/jenkins_data"
+    path: "/mnt/nfs//jenkins_data/"
 
 ---
 
@@ -132,8 +132,8 @@ spec:
             cpu: 200m
             memory: 512Mi
         env:
-        - name: PROJECT_REPO_MAIN
-          value: https://github.com/dellius-alexander/Testing-Strategy.git
+        # - name: PROJECT_REPO_MAIN
+        #   value: https://github.com/dellius-alexander/Testing-Strategy.git
         - name: JAVA_OPTS
           value: -Xmx2048m -Dhudson.slaves.NodeProvisioner.MARGIN=50 -Dhudson.slaves.NodeProvisioner.MARGIN0=0.85 
         - name: JENKINS_UC
@@ -172,7 +172,7 @@ spec:
       port: 8080
       targetPort: 8080
       protocol: TCP
-      nodePort: 32307
+      nodePort: 32001
     - name: slave
       port: 50000
       protocol: TCP

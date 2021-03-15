@@ -2,15 +2,18 @@
 # env(Centos7)
 ###############################################################################
 ###############################################################################
-###############################################################################
-    # Verify kubelet present on host
-__KUBECTL__=$( command -v kubectl)
-__PACKAGE_MGR__=$( command -v apt || command -v apt-get || command -v yum)
-__DIR_ARRAY__=("${PWD}"  "${__KUBECTL__}")
-echo "${__PACKAGE_MGR__}"
-echo ${__DIR_ARRAY__} 
 RED='\033[0;31m' # Red
 NC='\033[0m' # No Color CAP
+__JENKINS_ENV__=$([ -d $(find ~+ -type f -name jenkins.env) ] && cat )
+__KUBECTL__=$( command -v kubectl)
+__PACKAGE_MGR__=$( command -v apt || command -v apt-get || command -v yum)
+__DIR_ARRAY__=() # Array variable storing
+__DIR_ARRAY__=(${PWD},  ${__KUBECTL__})
+###############################################################################
+    # Verify kubelet present on host
+
+echo ${__PACKAGE_MGR__}
+echo ${__DIR_ARRAY__} 
     # source environment file
 if [[ -f $(find ~+ -type f -name jenkins.env) ]]; then
     source $(find ~+ -type f -name 'jenkins.env')
@@ -62,12 +65,13 @@ fi
 }
 ###############################################################################
 ###############################################################################
-function dir_exists(){
+function __dir_exists__(){
 if [[ -d "${1}" ]]; then
     ### Take action if $DIR exists ###
     DIR=$1 
+    # count array of directories
     CNT=${#DIR[@]}
-    #echo ${DIR[@]}
+    echo "${DIR[@]} Directories..."
 else
      ###  Control will jump here if $DIR does NOT exists ###
         echo "Error: ${1} not found. Can not continue."
@@ -79,11 +83,10 @@ sleep 2
 for (( i=0; i<${#DIR[@]}; i++ ));
 do
     ### Take action while $CNT -ne 0 ###
-    printf "DIR #: ${CNT}\n"
-    printf "${MSG} ${DIR[$i]}\n"
-    ((CNT--))
+    printf "\nDIR #: ${CNT}\n"
+    printf "\n${MSG} ${DIR[$i]}\n"
+    ((i++))
 done
-
 }  # END OF DIR_EXISTS()
 ###############################################################################
 ###############################################################################
@@ -122,13 +125,13 @@ function __check_env__(){
 wait $!
     # verify required package nfs-utils exists
 if [[ $(rpm -q 'nfs-utils' | grep -c "nfs-utils") == 0 ]]; then 
-    printf "${RED}Installing nfs-utils to enable nfs volume mounts...${NC}"
-    ${__PACKAGE_MGR__} install -y *nfs-utils
+    printf "\n${RED}Installing nfs-utils to enable nfs volume mounts...${NC}\n"
+    ${__PACKAGE_MGR__} install -y nfs-utils
 fi
 wait $!
     # install firewalld
 if [[ $(rpm -q 'firewalld' | grep -c "firewalld") == 0 ]]; then
-    printf "${RED}Installing firewalld to enable firewall rules...${NC}"
+    printf "\n${RED}Installing firewalld to enable firewall rules...${NC}\n"
     ${__PACKAGE_MGR__} install -y firewalld
 fi
 wait $!
@@ -145,10 +148,9 @@ if [[  ! -d ${__LOCAL_DIRECTORY__} ]]; then
             # check if nfs volume set to persist reboot
         if [[ $(cat /etc/fstab &> /dev/null | grep -c "${__NFS_VOLUME__}") == 0 ]]; then 
                 # set nfs volume to persist reboot
-        cat >>/etc/fstab <<__EOF
+        cat >>/etc/fstab <<EOF
         ${__NFS_REMOTE_HOST__}:${__NFS_VOLUME__}  ${__LOCAL_DIRECTORY__} nfs  rw,defaults 0 0
-__EOF
-
+EOF
         fi
         wait $!
         if [[  $(firewall-cmd --state | grep -c 'not running') == 1  ]]; then
@@ -163,7 +165,7 @@ __EOF
             #
             wait $!
             #
-            printf "\n\nPorts assignments...\n"
+            printf "\nPorts assignments...\n"
             firewall-cmd --zone=public --permanent --list-ports
             wait $!
             echo "Local directory created..."
@@ -213,7 +215,7 @@ fi
     # verify __KUBECTL__ binary
 __kube_binary__
     # check directory
-eval dir_exists ${__DIR_ARRAY__} 
+eval __dir_exists__ ${__DIR_ARRAY__}
     # setup jenkins
 __setup__
 if [[ $? != 0  ]]; then

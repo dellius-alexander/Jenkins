@@ -1,0 +1,141 @@
+# https://github.com/kubernetes/examples/tree/master/staging/volumes/nfs
+
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name:  nfs-jenkins-storage
+provisioner: kubernetes.io/nfs-server
+volumeBindingMode: WaitForFirstConsumer
+reclaimPolicy: Delete
+
+---
+# PV
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: nfs-pv-jenkins
+  namespace: jenkins
+spec:
+  capacity:
+    storage: 20Mi
+  accessModes:
+    - ReadWriteMany
+  nfs:
+    # run [ export __NFS_SERVER_ADDR__=<server address | ip address> ]
+    server: ${__NFS_SERVER_ADDR__}
+    path: "/volume1/nfs_k8s_001/jenkins_data"
+
+---
+# PVC
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: nfs-jenkins_data
+  namespace: jenkins
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: nfs-jenkins-storage
+  resources:
+    requests:
+      storage: 20Mi
+
+---
+# NFS Server: Replication Controller
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  name: nfs-server
+  namespace: jenkins
+spec:
+  replicas: 1
+  selector:
+    role: nfs-server
+  template:
+    metadata:
+      labels:
+        role: nfs-server
+    spec:
+      containers:
+      - name: nfs-server
+        image: k8s.gcr.io/volume-nfs:0.8
+        ports:
+          - name: nfs
+            containerPort: 2049
+          - name: mountd
+            containerPort: 20048
+          - name: rpcbind
+            containerPort: 111
+        securityContext:
+          privileged: true
+        volumeMounts:
+          - mountPath: /exports
+            name: jenkins-data
+      volumes:
+        - name: jenkins-data
+          persistentVolumeClaim:
+            claimName: nfs-jenkins_data
+
+---
+# NFS Service
+kind: Service
+apiVersion: v1
+metadata:
+  name: nfs-server
+  namespace: jenkins
+spec:
+  ports:
+    - name: nfs
+      port: 2049
+    - name: mountd
+      port: 20048
+    - name: rpcbind
+      port: 111
+  selector:
+    role: nfs-server
+
+# ---
+# # NFS Web UI
+# # This pod mounts the nfs volume claim into /usr/share/nginx/html and
+# # serves a simple web page.
+# apiVersion: v1
+# kind: ReplicationController
+# metadata:
+#   name: nfs-web
+#   namespace: jenkins
+# spec:
+#   replicas: 2
+#   selector:
+#     role: web-frontend
+#   template:
+#     metadata:
+#       labels:
+#         role: web-frontend
+#     spec:
+#       containers:
+#       - name: web
+#         image: nginx
+#         ports:
+#           - name: web
+#             containerPort: 80
+#         volumeMounts:
+#             # name must match the volume name below
+#             - name: nfs
+#               mountPath: "/usr/share/nginx/html"
+#       volumes:
+#       - name: nfs
+#         persistentVolumeClaim:
+#           claimName: nfs
+
+# ---
+# # Web UI Frontend
+# kind: Service
+# apiVersion: v1
+# metadata:
+#   name: nfs-web
+#   namespace: jenkins
+# spec:
+#   ports:
+#     - port: 80
+#   selector:
+#     role: web-frontend
