@@ -30,7 +30,7 @@ fi
 ###############################################################################
 # Create Jenkins Namespace 
 ###############################################################################
-if [[  $(kubectl get namespaces -A | grep -c 'jenkins') == 0 ]]; then
+if [[  $(kubectl get namespaces -A | grep -ic 'jenkins') == 0 ]]; then
     ${__KUBECTL__} create namespace jenkins
     wait $!
     printf "\n${RED}Jenkins Namespace created......${NC}\n"
@@ -53,7 +53,7 @@ fi
 ###############################################################################
 function __kube_binary__(){
     # Require sudo to run script
-if [[ $(rpm -q kubectl | grep -c 'kubectl') == 0 ]]; then
+if [[ $(rpm -q kubectl | grep -ic 'kubectl') == 0 ]]; then
     printf "\nUnable to locate ${RED}kubelet${NC} binary. \nPlease re-run this \
     script using the ${RED}--setup${NC} flag.\n Usage:${RED} $0 [ --reset | --setup ]${NC}\n"
     printf "\n$RED}sudo $0 $*${NC}";
@@ -70,8 +70,8 @@ if [[ -d "${1}" ]]; then
     ### Take action if $DIR exists ###
     DIR=$1 
     # count array of directories
-    CNT=${#DIR[@]}
-    echo "${DIR[@]} Directories..."
+    local CNT=${#DIR[@]}
+    echo "CNT Directories..."
 else
      ###  Control will jump here if $DIR does NOT exists ###
         echo "Error: ${1} not found. Can not continue."
@@ -83,8 +83,8 @@ sleep 2
 for (( i=0; i<${#DIR[@]}; i++ ));
 do
     ### Take action while $CNT -ne 0 ###
-    printf "\nDIR #: ${CNT}\n"
-    printf "\n${MSG} ${DIR[$i]}\n"
+    printf "\nDIR #: ${CNT}:\t"
+    printf "${MSG} ${DIR[$i]}\n"
     ((i++))
 done
 }  # END OF DIR_EXISTS()
