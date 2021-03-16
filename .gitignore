@@ -1,6 +1,7 @@
 # Remove Files
 jenkinsfile.example
 .scratch
-
+jenkins.env
+!jenkins.env.example
 # Remove Directories
 

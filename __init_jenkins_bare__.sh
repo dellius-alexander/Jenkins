@@ -63,32 +63,6 @@ fi
 }
 ###############################################################################
 ###############################################################################
-function __dir_exists__(){
-if [[ -d "${1}" ]]; then
-    ### Take action if $DIR exists ###
-    DIR=$1 
-    # count array of directories
-    local CNT=${#DIR[@]}
-    echo "CNT Directories..."
-else
-     ###  Control will jump here if $DIR does NOT exists ###
-        echo "Error: ${1} not found. Can not continue."
-        exit 1
-fi
-sleep 2
-
-# use for loop read all directories
-for (( i=0; i<${#DIR[@]}; i++ ));
-do
-    ### Take action while $CNT -ne 0 ###
-    printf "\nDIR #: ${CNT}:\t"
-    printf "${MSG} ${DIR[$i]}\n"
-    ((i++))
-done
-}  # END OF DIR_EXISTS()
-###############################################################################
-###############################################################################
-###############################################################################
 function __auth_certs_(){
 
 # Kubernetes URL: the Kubernetes API Server URL 
