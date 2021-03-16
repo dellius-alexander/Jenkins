@@ -5,7 +5,7 @@
 set -e
 RED='\033[0;31m' # Red
 NC='\033[0m' # No Color CAP
-__JENKINS_ENV__=$([ -d $(find ~+ -type f -name 'jenkins.env') ] && cat )
+__JENKINS_ENV__=$([ -d $(find ~+ -type f -name 'jenkins.env') ] && echo "Unable to locate \"jenkins.env\" file......" && exit 1 )
 __KUBECTL__=$( command -v kubectl)
 __PACKAGE_MGR__=$( command -v yum)
 ###############################################################################
