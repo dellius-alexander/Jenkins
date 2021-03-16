@@ -31,7 +31,7 @@ spec:
     - ReadWriteOnce
   hostPath:
   # Linux hostPath
-    path: "/mnt/nfs/dalex_1618/jenkins_data/"
+    path: "/mnt/nfs/jenkins_data/"
 
 
 ---

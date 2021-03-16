@@ -2,21 +2,19 @@
 # env(Centos7)
 ###############################################################################
 ###############################################################################
+set -e
 RED='\033[0;31m' # Red
 NC='\033[0m' # No Color CAP
-__JENKINS_ENV__=$([ -d $(find ~+ -type f -name jenkins.env) ] && cat )
+__JENKINS_ENV__=$([ -d $(find ~+ -type f -name 'jenkins.env') ] && cat )
 __KUBECTL__=$( command -v kubectl)
-__PACKAGE_MGR__=$( command -v apt || command -v apt-get || command -v yum)
-__DIR_ARRAY__=() # Array variable storing
-__DIR_ARRAY__=(${PWD},  ${__KUBECTL__})
+__PACKAGE_MGR__=$( command -v yum)
 ###############################################################################
     # Verify kubelet present on host
 
 echo ${__PACKAGE_MGR__}
-echo ${__DIR_ARRAY__} 
     # source environment file
-if [[ -f $(find ~+ -type f -name jenkins.env) ]]; then
-    source $(find ~+ -type f -name 'jenkins.env')
+if [ -f ${__JENKINS_ENV__} ]; then
+    source ${__JENKINS_ENV__}
     printf "\nFound jenkins.env file......\n"
 else
     printf "\nUnable to locate jenkins.env file.......exiting......\n"
@@ -56,7 +54,7 @@ function __kube_binary__(){
 if [[ $(rpm -q kubectl | grep -ic 'kubectl') == 0 ]]; then
     printf "\nUnable to locate ${RED}kubelet${NC} binary. \nPlease re-run this \
     script using the ${RED}--setup${NC} flag.\n Usage:${RED} $0 [ --reset | --setup ]${NC}\n"
-    printf "\n$RED}sudo $0 $*${NC}";
+    printf "\n$RED}sudo $0 $*${NC}\n";
     exit 1
 #else
     #echo "Kubectl found:  ${__KUBECTL__}"
@@ -139,46 +137,41 @@ wait $!
 if [[  ! -d ${__LOCAL_DIRECTORY__} ]]; then
     echo "Creating local nfs......"
    [[  -d ${__LOCAL_DIRECTORY__}  ]] &&  mkdir -p ${__LOCAL_DIRECTORY__}
-   
+fi
+# check if nfs volume set to persist reboot
+if [ $(cat /etc/fstab | grep -i ${__NFS_VOLUME__} | grep -ic ${__LOCAL_DIRECTORY__}) != 1 ]; then
+# set nfs volume to persist reboot
+        cat >>/etc/fstab <<EOF
+        ${__NFS_REMOTE_HOST__}:${__NFS_VOLUME__}  ${__LOCAL_DIRECTORY__}  nfs4    _netdev,auto,nosuid,rw,sync,hard,intr    0   0
+EOF
+fi
+
+if [ $(mount | grep -i ${__NFS_VOLUME__} | grep -ic ${__LOCAL_DIRECTORY__}) != 1 ]; then
     # mount nfs volume for jenkins persistent volume 
     mount -t nfs -o ${__NFS_REMOTE_HOST__}:${__NFS_VOLUME__}  ${__LOCAL_DIRECTORY__}
-    # verify mounted volume NFS share
-    if [[  $(cat /etc/fstab | grep -c  ${__LOCAL_DIRECTORY__}) == 0  ]]  \
-    && [[  $(ls -lia ${__LOCAL_DIRECTORY__} | grep -c "${__LOCAL_DIRECTORY__}")  == 0 ]]; then
-            # check if nfs volume set to persist reboot
-        if [[ $(cat /etc/fstab &> /dev/null | grep -c "${__NFS_VOLUME__}") == 0 ]]; then 
-                # set nfs volume to persist reboot
-        cat >>/etc/fstab <<EOF
-        ${__NFS_REMOTE_HOST__}:${__NFS_VOLUME__}  ${__LOCAL_DIRECTORY__} nfs  rw,defaults 0 0
-EOF
-        fi
-        wait $!
-        if [[  $(firewall-cmd --state | grep -c 'not running') == 1  ]]; then
-            printf "\n ${RED}Firewalld is not running. \n Restart firewalld and re-run the ${0}......${NC}\n"
-            exit 1
-        else
-            #
-            firewall-cmd --add-service=nfs --zone=internal --permanent
-            firewall-cmd --add-service=mountd --zone=internal --permanent
-            firewall-cmd --add-service=rpc-bind --zone=internal --permanent
-            firewall-cmd --reload
-            #
-            wait $!
-            #
-            printf "\nPorts assignments...\n"
-            firewall-cmd --zone=public --permanent --list-ports
-            wait $!
-            echo "Local directory created..."
-            sleep 3
-            wait $!
-        fi 
 
-    fi
-#
-wait $!
+    if [[  $(firewall-cmd --state | grep -ic 'not running') == 1  ]]; then
+        printf "\n ${RED}Firewalld is not running. \n Restart firewalld and re-run the ${0}......${NC}\n"
+        exit 1
+    else
+        #
+        firewall-cmd --add-service=nfs --zone=internal --permanent
+        firewall-cmd --add-service=mountd --zone=internal --permanent
+        firewall-cmd --add-service=rpc-bind --zone=internal --permanent
+        firewall-cmd --reload
+        #
+        wait $!
+        #
+        printf "\nPorts assignments...\n"
+        firewall-cmd --zone=public --permanent --list-ports
+        wait $!
+        echo "Local directory created..."
+        sleep 3
+        wait $!
+    fi 
 fi
     # Verify and/or start dbus
-if [[ $(ls -lia /run  | grep -c "dbus") == 0  ]]; then
+if [[ $(ls -lia /run  | grep -ic "dbus") == 0  ]]; then
     echo "Setting up dbus configuration..."
     dbus-uuidgen > /var/lib/dbus/machine-id
     mkdir -p /var/run/dbus
@@ -192,16 +185,13 @@ fi
 ###############################################################################
 function __setup__(){
 ###############################################################################
-    # color highlighting
-RED='\033[0;31m' # Red
-NC='\033[0m' # No Color CAP
 
 __check_env__
 
 wait $!
     # Setup the storage class, persistent volume and persistent volume claim
-if [[  $(${__KUBECTL__} get pvc -A &>/dev/null | grep -c jenkins) == 0  ]]; then
-    ${__KUBECTL__} apply -f jenkins-volume.yaml
+if [[  $(${__KUBECTL__} get pvc -A &>/dev/null | grep -ic jenkins) == 0  ]]; then
+    ${__KUBECTL__} apply -f $(find ~+ -type f -name 'jenkins-volume.yaml')
     printf "\n${RED}Jenkins persistent volume created...${NC}\n"
     wait $!
 else
@@ -214,21 +204,20 @@ fi
 ###############################################################################
     # verify __KUBECTL__ binary
 __kube_binary__
-    # check directory
-eval __dir_exists__ ${__DIR_ARRAY__}
     # setup jenkins
 __setup__
-if [[ $? != 0  ]]; then
+if [ $? != 0 ]; then
     printf "Something went wrong....exit codes...\n$?\n"
+    exit 1
 fi
     # Setup jenkins.rbac.yaml, namespace & service account
-${__KUBECTL__} apply -f jenkins-rbac.yaml
+${__KUBECTL__} apply -f $(find ~+ -type f -name 'jenkins-rbac.yaml')
 wait $!
 #     # Setup volume claim
 # ${__KUBECTL__} apply -f jenkins-volume.yaml
 # wait $!
     # Setup the service account and jenkins deployment
-${__KUBECTL__} apply -f jenkins-deployment.yaml
+${__KUBECTL__} apply -f $(find ~+ -type f -name 'jenkins-deployment.yaml')
 wait $!
 
 echo "Completed......"
