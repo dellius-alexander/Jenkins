@@ -60,7 +60,7 @@ spec:
         volumeMounts:
         - mountPath: /var/jenkins_home
           name: jenkins
-        - mountPath: /var/run/docker.sock
+        - mountPath: /var/run/
           name: docker-host
       restartPolicy: Always
       securityContext:
