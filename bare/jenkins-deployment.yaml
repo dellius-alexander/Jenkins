@@ -28,6 +28,8 @@ spec:
         tier: frontend
     spec:
       serviceAccountName: jenkins
+      # hostNetwork: true
+      # hostPID: true
       containers:
       - name: jenkins
         image: dalexander2israel/jenkins:lts-centos
@@ -64,6 +66,7 @@ spec:
           name: docker-host
       restartPolicy: Always
       securityContext:
+        privileged: true
         runAsUser: 0
       terminationGracePeriodSeconds: 30
       volumes:

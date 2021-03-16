@@ -21,7 +21,7 @@ else
     exit 1
 fi
 #
-# echo "Found Local Directory: ${__LOCAL_DIRECTORY__}"
+# echo "Found Local Directory: ${__JENKINS_DATA_DIR___}"
 # echo "Found Remote Host: ${__NFS_REMOTE_HOST__}"
 # echo "Found NFS Share: ${__NFS_VOLUME__}"
 ###############################################################################
@@ -108,21 +108,23 @@ if [[ $(rpm -q 'firewalld' | grep -c "firewalld") == 0 ]]; then
 fi
 wait $!
     # Create local nfs directory
-if [[  ! -d ${__LOCAL_DIRECTORY__} ]]; then
+if [[  ! -d ${__JENKINS_DATA_DIR___} ]]; then
     echo "Creating local nfs......"
-   [[  -d ${__LOCAL_DIRECTORY__}  ]] &&  mkdir -p ${__LOCAL_DIRECTORY__}
+   [[  -d ${__JENKINS_DATA_DIR___}  ]] &&  mkdir -p ${__JENKINS_DATA_DIR___}
 fi
 # check if nfs volume set to persist reboot
-if [ $(cat /etc/fstab | grep -i ${__NFS_VOLUME__} | grep -ic ${__LOCAL_DIRECTORY__}) != 1 ]; then
+if [ $(cat /etc/fstab | grep -i ${__NFS_VOLUME__} | grep -ic ${__JENKINS_DATA_DIR___}) != 1 ]; then
 # set nfs volume to persist reboot
         cat >>/etc/fstab <<EOF
-        ${__NFS_REMOTE_HOST__}:${__NFS_VOLUME__}  ${__LOCAL_DIRECTORY__}  nfs4    _netdev,auto,nosuid,rw,sync,hard,intr    0   0
+        ${__NFS_REMOTE_HOST__}:${__NFS_VOLUME__}  ${__JENKINS_DATA_DIR___}  nfs4    _netdev,auto,nosuid,rw,sync,hard,intr    0   0
 EOF
+# Now we mount the newly added nfs share.
+mount -a
 fi
 
-if [ $(mount | grep -i ${__NFS_VOLUME__} | grep -ic ${__LOCAL_DIRECTORY__}) != 1 ]; then
+if [ $(mount | grep -i ${__NFS_VOLUME__} | grep -ic ${__JENKINS_DATA_DIR___}) != 1 ]; then
     # mount nfs volume for jenkins persistent volume 
-    mount -t nfs -o ${__NFS_REMOTE_HOST__}:${__NFS_VOLUME__}  ${__LOCAL_DIRECTORY__}
+    mount -t nfs -o ${__NFS_REMOTE_HOST__}:${__NFS_VOLUME__}  ${__JENKINS_DATA_DIR___}
 
     if [[  $(firewall-cmd --state | grep -ic 'not running') == 1  ]]; then
         printf "\n ${RED}Firewalld is not running. \n Restart firewalld and re-run the ${0}......${NC}\n"
