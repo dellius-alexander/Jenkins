@@ -51,7 +51,7 @@ spec:
         - name: JENKINS_UC
           value: https://updates.jenkins.io/update-center.json
         - name: __KUBECONFIG__
-          value: /var/jenkins_home/secrets/kubeconfig
+          value: ${__KUBECONFIG_JENKINS__}
         ports:
         - containerPort: 8080
           protocol: TCP
