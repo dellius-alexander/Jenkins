@@ -2,25 +2,27 @@
 # env(Centos7)
 ###############################################################################
 ###############################################################################
+    # Require sudo to run script
+if [[ $UID != 0 ]]; then
+    printf "\nPlease run this script with sudo: \n";
+    printf "\n${RED} sudo $0 $* ${NC}\n\n";
+    exit 1
+fi
+###############################################################################
+###############################################################################
 set -e
 RED='\033[0;31m' # Red
 NC='\033[0m' # No Color CAP
-__JENKINS_ENV__=$([ -d $(find ~+ -type f -name 'jenkins.env') ] && echo "Unable to locate \"jenkins.env\" file......" && exit 1 )
 __KUBECTL__=$( command -v kubectl)
 __PACKAGE_MGR__=$( command -v yum)
-###############################################################################
-    # Verify kubelet present on host
-
-echo ${__PACKAGE_MGR__}
-    # source environment file
-if [ -f ${__JENKINS_ENV__} ]; then
-    source ${__JENKINS_ENV__}
-    printf "\nFound jenkins.env file......\n"
-else
-    printf "\nUnable to locate jenkins.env file.......exiting......\n"
+__JENKINS_ENV__=$(find ~+ -type f -name 'jenkins.env')
+if [ ! -d ${__JENKINS_ENV__} ]; then
+    echo "\nUnable to locate \"jenkins.env\" file.......exiting......\n" 
     exit 1
+else
+    source ${__JENKINS_ENV__}
 fi
-#
+###############################################################################
 # echo "Found Local Directory: ${__JENKINS_DATA_DIR___}"
 # echo "Found Remote Host: ${__NFS_REMOTE_HOST__}"
 # echo "Found NFS Share: ${__NFS_VOLUME__}"
@@ -35,16 +37,6 @@ if [[  $(kubectl get namespaces -A | grep -ic 'jenkins') == 0 ]]; then
     #echo "$(kubectl get namespaces -A | grep -c 'jenkins')"
     wait $!
 fi
-###############################################################################
-###############################################################################
-###############################################################################
-    # Require sudo to run script
-if [[ $UID != 0 ]]; then
-    printf "\nPlease run this script with sudo: \n";
-    printf "\n${RED} sudo $0 $* ${NC}\n\n";
-    exit 1
-fi
-###############################################################################
 ###############################################################################
 ###############################################################################
 #               VERIFY __KUBECTL__ BINARIES
