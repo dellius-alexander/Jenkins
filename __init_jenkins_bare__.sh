@@ -44,9 +44,8 @@ fi
 function __kube_binary__(){
     # Require sudo to run script
 if [[ $(rpm -q kubectl | grep -ic 'kubectl') == 0 ]]; then
-    printf "\nUnable to locate ${RED}kubelet${NC} binary. \nPlease re-run this \
-    script using the ${RED}--setup${NC} flag.\n Usage:${RED} $0 [ --reset | --setup ]${NC}\n"
-    printf "\n$RED}sudo $0 $*${NC}\n";
+    printf "\nUnable to locate ${RED}kubectl${NC} binary.\n\
+    Please install \"kubectl\"......\n";
     exit 1
 #else
     #echo "Kubectl found:  ${__KUBECTL__}"
