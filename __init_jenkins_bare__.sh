@@ -2,6 +2,7 @@
 # env(Centos7)
 ###############################################################################
 ###############################################################################
+set -e
     # Require sudo to run script
 if [[ $UID != 0 ]]; then
     printf "\nPlease run this script with sudo: \n";
@@ -10,7 +11,6 @@ if [[ $UID != 0 ]]; then
 fi
 ###############################################################################
 ###############################################################################
-set -e
 RED='\033[0;31m' # Red
 NC='\033[0m' # No Color CAP
 __KUBECTL__=$( command -v kubectl)
@@ -174,7 +174,7 @@ __kube_binary__
     # setup jenkins
 __setup__
 if [ $? != 0 ]; then
-    printf "Something went wrong....exit codes...\n$?\n"
+    printf "Something went wrong....exit codes...\n\n"
     exit 1
 fi
     # Setup jenkins.rbac.yaml, namespace & service account

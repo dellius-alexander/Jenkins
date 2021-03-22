@@ -66,7 +66,6 @@ spec:
           name: docker-host
       restartPolicy: Always
       securityContext:
-        privileged: true
         runAsUser: 0
       terminationGracePeriodSeconds: 30
       volumes:
@@ -120,7 +119,7 @@ spec:
       port: 8080
       targetPort: 8080      
       protocol: TCP
-      nodePort: 32001
+      nodePort: 32003
     - name: slave
       port: 50000
       targetPort: 50000
