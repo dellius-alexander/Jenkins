@@ -21,10 +21,9 @@ if [ ! -f ${__JENKINS_ENV__} ]; then
     echo "\nUnable to locate \"jenkins.env\" file.......exiting......\n"
     exit 1
 else
-    prinf "${__JENKINS_ENV__}"
+    printf "${__JENKINS_ENV__}"
     source ${__JENKINS_ENV__}
 fi
-exit 0
 ###############################################################################
 # echo "Found Local Directory: ${__JENKINS_DATA_DIR___}"
 # echo "Found Remote Host: ${__NFS_REMOTE_HOST__}"

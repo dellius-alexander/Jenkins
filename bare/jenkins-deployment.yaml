@@ -43,7 +43,7 @@ spec:
             memory: 1024Mi
         env:
         - name: DOCKER_HOST
-          value: unix:///var/run/docker.sock
+          value: unix://var/run/docker.sock
         - name: PROJECT_REPO_MAIN
           value: https://github.com/dellius-alexander/Testing-Strategy.git
         - name: JAVA_OPTS
@@ -62,7 +62,7 @@ spec:
         volumeMounts:
         - mountPath: /var/jenkins_home
           name: jenkins
-        - mountPath: /var/run/
+        - mountPath: /var/run/docker.sock
           name: docker-host
       restartPolicy: Always
       securityContext:
@@ -89,13 +89,13 @@ metadata:
     app: jenkins
     #tier: frontend
 spec:
-  maxReplicas: 5
+  maxReplicas: 2
   minReplicas: 1
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
     name: jenkins-deployment
-  targetCPUUtilizationPercentage: 50
+  targetCPUUtilizationPercentage: 20
 status:
   observedGeneration: 1
   currentReplicas: 1
