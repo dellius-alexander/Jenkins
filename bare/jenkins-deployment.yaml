@@ -61,7 +61,7 @@ spec:
           protocol: TCP
         volumeMounts:
         - mountPath: /var/jenkins_home
-          name: jenkins_home
+          name: jenkins-data
         - mountPath: /var/run/docker.sock
           name: docker-host
       restartPolicy: Always
@@ -69,7 +69,7 @@ spec:
         runAsUser: 0
       terminationGracePeriodSeconds: 30
       volumes:
-      - name: jenkins_home
+      - name: jenkins-data
         # emptyDir: {}  # Data is not persisted across pod failures
         persistentVolumeClaim:    # Data is persisted across pod failures
           claimName: jenkins-pvc
