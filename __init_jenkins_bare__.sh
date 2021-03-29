@@ -13,11 +13,11 @@ fi
 ###############################################################################
 RED='\033[0;31m' # Red
 NC='\033[0m' # No Color CAP
-__KUBECTL__=$( command -v kubectl)
+__KUBECTL__=$(command -v kubectl)
 __PACKAGE_MGR__=$( command -v yum)
 __JENKINS_ENV__=$(find ~+ -type f -name 'jenkins.env')
-if [ ! -d ${__JENKINS_ENV__} ]; then
-    echo "\nUnable to locate \"jenkins.env\" file.......exiting......\n" 
+if [ ! -f ${__JENKINS_ENV__} ]; then
+    echo "\nUnable to locate \"jenkins.env\" file.......exiting......\n"
     exit 1
 else
     source ${__JENKINS_ENV__}
@@ -30,10 +30,10 @@ fi
 ###############################################################################
 # Create Jenkins Namespace 
 ###############################################################################
-if [[  $(kubectl get namespaces -A | grep -ic 'jenkins') == 0 ]]; then
+if [  $(kubectl get namespaces -A | grep -ic "jenkins") == 0  ]; then
     ${__KUBECTL__} create namespace jenkins
     wait $!
-    printf "\n${RED}Jenkins Namespace created......${NC}\n"
+    printf "\n${RED}Jenkins Namespace created......${NC}\n\n"
     #echo "$(kubectl get namespaces -A | grep -c 'jenkins')"
     wait $!
 fi
@@ -43,7 +43,7 @@ fi
 ###############################################################################
 function __kube_binary__(){
     # Require sudo to run script
-if [[ $(rpm -q kubectl | grep -ic 'kubectl') == 0 ]]; then
+if [ $(rpm -q kubectl | grep -ic 'kubectl') == 0 ]; then
     printf "\nUnable to locate ${RED}kubectl${NC} binary.\n\
     Please install \"kubectl\"......\n";
     exit 1
