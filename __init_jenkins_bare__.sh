@@ -16,12 +16,15 @@ NC='\033[0m' # No Color CAP
 __KUBECTL__=$(command -v kubectl)
 __PACKAGE_MGR__=$( command -v yum)
 __JENKINS_ENV__=$(find ~+ -type f -name 'jenkins.env')
+
 if [ ! -f ${__JENKINS_ENV__} ]; then
     echo "\nUnable to locate \"jenkins.env\" file.......exiting......\n"
     exit 1
 else
+    prinf "${__JENKINS_ENV__}"
     source ${__JENKINS_ENV__}
 fi
+exit 0
 ###############################################################################
 # echo "Found Local Directory: ${__JENKINS_DATA_DIR___}"
 # echo "Found Remote Host: ${__NFS_REMOTE_HOST__}"
@@ -156,7 +159,7 @@ __check_env__
 
 wait $!
     # Setup the storage class, persistent volume and persistent volume claim
-if [[  $(${__KUBECTL__} get pvc -A &>/dev/null | grep -ic jenkins) == 0  ]]; then
+if [  $(${__KUBECTL__} get pvc -A &>/dev/null | grep -ic jenkins) == 0  ]; then
     ${__KUBECTL__} apply -f $(find ~+ -type f -name 'jenkins-volume.yaml')
     printf "\n${RED}Jenkins persistent volume created...${NC}\n"
     wait $!
