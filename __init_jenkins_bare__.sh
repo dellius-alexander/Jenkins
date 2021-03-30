@@ -13,16 +13,23 @@ fi
 ###############################################################################
 RED='\033[0;31m' # Red
 NC='\033[0m' # No Color CAP
+###############################################################################
+function __color__(){
+    [ $1 =~ '\n' ] && \
+    printf "${RED}$1${NC}" || \
+    echo "${RED}$1${NC}"    
+}
+###############################################################################
 __KUBECTL__=$(command -v kubectl)
 __PACKAGE_MGR__=$( command -v yum)
 __JENKINS_ENV__=$(find ~+ -type f -name 'jenkins.env')
 
 if [ ! -f ${__JENKINS_ENV__} ]; then
-    echo "\nUnable to locate \"jenkins.env\" file.......exiting......\n"
+    __color__ "\nUnable to locate \"jenkins.env\" file.......exiting......\n"
     exit 1
 else
     printf "${__JENKINS_ENV__}"
-    source ${__JENKINS_ENV__}
+    source "${__JENKINS_ENV__}"
 fi
 ###############################################################################
 # echo "Found Local Directory: ${__JENKINS_DATA_DIR___}"
@@ -154,7 +161,7 @@ fi
 function __setup__(){
 ###############################################################################
 
-__check_env__
+$(__check_env__)
 
 wait $!
     # Setup the storage class, persistent volume and persistent volume claim
@@ -173,7 +180,7 @@ fi
     # verify __KUBECTL__ binary
 __kube_binary__
     # setup jenkins
-__setup__
+$(__setup__)
 if [ $? != 0 ]; then
     printf "Something went wrong....exit codes...\n\n"
     exit 1
