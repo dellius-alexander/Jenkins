@@ -2,24 +2,24 @@
 # env(Centos7)
 ###############################################################################
 ###############################################################################
-set -e
-    # Require sudo to run script
-if [[ $UID != 0 ]]; then
-    printf "\nPlease run this script with sudo: \n";
-    printf "\n${RED} sudo $0 $* ${NC}\n\n";
-    exit 1
-fi
-###############################################################################
-###############################################################################
 RED='\033[0;31m' # Red
 NC='\033[0m' # No Color CAP
 ###############################################################################
 function __color__(){
     [ $1 =~ '\n' ] && \
-    printf "${RED}$1${NC}" || \
-    echo "${RED}$1${NC}"    
+    printf "${RED}$*${NC}" || \
+    echo "${RED}$*${NC}"    
 }
 ###############################################################################
+###############################################################################
+set -e
+    # Require sudo to run script
+if [[ $UID != 0 ]]; then
+    __color__ "\nPlease run this script with sudo: \n"
+    __color__ "\n${RED} sudo $0 $* ${NC}\n\n";
+    exit 1
+fi
+
 __KUBECTL__=$(command -v kubectl)
 __PACKAGE_MGR__=$( command -v yum)
 __JENKINS_ENV__=$(find ~+ -type f -name 'jenkins.env')
