@@ -32,7 +32,7 @@ spec:
       # hostPID: true
       containers:
       - name: jenkins
-        image: dalexander2israel/jenkins:lts-centos
+        image: registry.dellius.app:5000/jenkins:lts-centos
         imagePullPolicy: Always
         resources:
           limits:
@@ -50,14 +50,25 @@ spec:
           value: -Xmx2048m -Dhudson.slaves.NodeProvisioner.MARGIN=50 -Dhudson.slaves.NodeProvisioner.MARGIN0=0.85 
         - name: JENKINS_UC
           value: https://updates.jenkins.io/update-center.json
-        - name: __KUBECONFIG__
-          value: ${__KUBECONFIG_JENKINS__}
+        - name: KUBECONFIG
+          value: /var/jenkins_home/secrets/kubeconfig
+        - name: JENKINS_PORT #disable HTTP
+          value: '-1'
+          #configure HTTPS
+        - name: JENKINS_HTTPS_PORT
+          value: "8443"
+        - name: JENKINS_HTTPS_KEYSTORE
+          value: "/etc/jenkins/jenkins_keystore.jks"
+        - name: JENKINS_HTTPS_KEYSTORE_PASSWORD
+          value: 'U2FyYWlAMjAwOQ=='
+        - name: JENKINS_HTTPS_LISTEN_ADDRESS
+          value: '127.0.0.1'
         ports:
-        - containerPort: 8080
-          protocol: TCP
         - containerPort: 50000
           protocol: TCP
         - containerPort: 80
+          protocol: TCP
+        - containerPort: 443
           protocol: TCP
         volumeMounts:
         - mountPath: /var/jenkins_home
@@ -95,7 +106,7 @@ spec:
     apiVersion: apps/v1
     kind: Deployment
     name: jenkins-deployment
-  targetCPUUtilizationPercentage: 20
+  targetCPUUtilizationPercentage: 25
 status:
   observedGeneration: 1
   currentReplicas: 1
@@ -113,16 +124,18 @@ metadata:
 spec:
   selector:
     app: jenkins
-  type: NodePort
+  type: ClusterIP
   ports:
-    - name: ui
-      port: 8080
-      targetPort: 8080      
-      protocol: TCP
-      nodePort: 32003
-    - name: slave
-      port: 50000
-      targetPort: 50000
     - name: http
       port: 80
       targetPort: 80
+      protocol: TCP
+      #nodePort: 32003
+    - name: https
+      port: 443
+      targetPort: 443
+    - name: slave
+      port: 50000
+      targetPort: 50000
+  externalIPs:
+    - 10.0.0.40

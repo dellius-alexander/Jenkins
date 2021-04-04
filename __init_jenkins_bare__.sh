@@ -6,30 +6,27 @@ set -e
 RED='\033[0;31m' # Red
 NC='\033[0m' # No Color CAP
 ###############################################################################
-function __color__(){
+function __print_red__(){
     printf "${RED}$*${NC}"
 }
 ###############################################################################
-###############################################################################
-
     # Require sudo to run script
 if [[ $UID != 0 ]]; then
-    __color__ "\nPlease run this script with sudo: \n"
-    __color__ "\n${RED} sudo $0 $* ${NC}\n\n";
+    __print_red__ "\nPlease run this script with sudo: \n"
+    __print_red__ "\n${RED} sudo $0 $* ${NC}\n\n";
     exit 1
 fi
-
-__KUBECTL__=$(command -v kubectl)
+###############################################################################
+__KUBECTL__=$( command -v kubectl)
 __PACKAGE_MGR__=$( command -v yum)
-__JENKINS_ENV__=$(find ~+ -type f -name 'jenkins.env')
-
+__JENKINS_ENV__=$( (find ~+ -type f -name 'jenkins.env') )
+###############################################################################
 if [ ! -f ${__JENKINS_ENV__} ]; then
-    __color__ "\nUnable to locate \"jenkins.env\" file.......exiting......\n"
+    __print_red__ "\nUnable to locate \"jenkins.env\" file.......exiting......\n"
     exit 1
-else
-    printf "${__JENKINS_ENV__}"
-    source "${__JENKINS_ENV__}"
 fi
+printf "${__JENKINS_ENV__}"
+source "${__JENKINS_ENV__}"
 ###############################################################################
 # echo "Found Local Directory: ${__JENKINS_DATA_DIR___}"
 # echo "Found Remote Host: ${__NFS_REMOTE_HOST__}"
@@ -38,11 +35,11 @@ fi
 ###############################################################################
 # Create Jenkins Namespace 
 ###############################################################################
-if [  $(kubectl get namespaces -A | grep -ic "jenkins") == 0  ]; then
+if [  $(${__KUBECTL__} get --kubeconfig=${__KUBECONFIG__} namespaces -A | grep -ic "jenkins") == 0  ]; then
     ${__KUBECTL__} create namespace jenkins
     wait $!
     printf "\n${RED}Jenkins Namespace created......${NC}\n\n"
-    #echo "$(kubectl get namespaces -A | grep -c 'jenkins')"
+    #echo "$(${__KUBECTL__} get namespaces -A | grep -c 'jenkins')"
     wait $!
 fi
 ###############################################################################
@@ -63,7 +60,6 @@ fi
 ###############################################################################
 ###############################################################################
 function __auth_certs_(){
-
 # Kubernetes URL: the Kubernetes API Server URL 
 #kubectl config view --minify | grep server
 #
@@ -76,13 +72,14 @@ function __auth_certs_(){
 # Retrieve the ServiceAccount token with this one liner command (the value 
 # will be required to configure Jenkins credentials later on):
 #
-kubectl get secret $(kubectl get sa jenkins -n jenkins -o jsonpath={.secrets[0].name}) \
+${__KUBECTL__} get --kubeconfig=${__KUBECONFIG__} secret $(${__KUBECTL__} get \
+--kubeconfig=${__KUBECONFIG__} sa jenkins -n jenkins -o jsonpath={.secrets[0].name}) \
 -n jenkins -o jsonpath={.data.token} | base64 --decode
 #
 # Retrieve the Kubernetes API Server CA Certificate this one liner command 
 # (the value will be required to configure the kubernetes plugin later on):
 
-kubectl get secret $(kubectl get sa jenkins -n jenkins -o jsonpath={.secrets[0].name}) \
+${__KUBECTL__} get --kubeconfig=${__KUBECONFIG__} secret $(${__KUBECTL__} get --kubeconfig=${__KUBECONFIG__} sa jenkins -n jenkins -o jsonpath={.secrets[0].name}) \
 -n jenkins -o jsonpath={.data.'ca\.crt'} | base64 --decode
 #
 # (Note: For more details about those values, have a look at Kubernetes - 
@@ -106,29 +103,31 @@ if [[ $(rpm -q 'firewalld' | grep -c "firewalld") == 0 ]]; then
 fi
 wait $!
     # Create local nfs directory
-if [[  ! -d ${__JENKINS_DATA_DIR___} ]]; then
+if [  ! -d ${__JENKINS_DATA_DIR___} ]; then
     echo "Creating local nfs......"
-   [[  -d ${__JENKINS_DATA_DIR___}  ]] &&  mkdir -p ${__JENKINS_DATA_DIR___}
+    mkdir -p "${__JENKINS_DATA_DIR___}"
 fi
 # check if nfs volume set to persist reboot
-if [ $(cat /etc/fstab | grep -i ${__NFS_VOLUME__} | grep -ic ${__JENKINS_DATA_DIR___}) != 1 ]; then
+if [ $(cat /etc/fstab | grep -ic "jenkins_data") != 2 ]; then
 # set nfs volume to persist reboot
-        cat >>/etc/fstab <<EOF
-        ${__NFS_REMOTE_HOST__}:${__NFS_VOLUME__}  ${__JENKINS_DATA_DIR___}  nfs4    _netdev,auto,nosuid,rw,sync,hard,intr    0   0
+    __print_red__ "\n\nSetting up nfs volume to persist reboot...\n\n"
+    cat >>/etc/fstab <<EOF
+    ${__NFS_REMOTE_HOST__}:${__NFS_VOLUME__}  ${__JENKINS_DATA_DIR___}  nfs4    _netdev,auto,nosuid,rw,sync,hard,intr    0   0
 EOF
 # Now we mount the newly added nfs share.
 mount -a
 fi
-
-if [ $(mount | grep -i ${__NFS_VOLUME__} | grep -ic ${__JENKINS_DATA_DIR___}) != 1 ]; then
+__print_red__ "****************************************************************"
+if [ $(mount | grep -i ${__NFS_VOLUME__} | grep -ic ${__JENKINS_DATA_DIR___}) == 0 ]; then
     # mount nfs volume for jenkins persistent volume 
-    mount -t nfs -o ${__NFS_REMOTE_HOST__}:${__NFS_VOLUME__}  ${__JENKINS_DATA_DIR___}
-
+    mount -t nfs -o nfsvers=4 ${__NFS_REMOTE_HOST__}:${__NFS_VOLUME__}  ${__JENKINS_DATA_DIR___}
+    __print_red__ "\n\nNFS share mounted locally at [ ${__JENKINS_DATA_DIR___} ]\n\n"
     if [[  $(firewall-cmd --state | grep -ic 'not running') == 1  ]]; then
         printf "\n ${RED}Firewalld is not running. \n Restart firewalld and re-run the ${0}......${NC}\n"
         exit 1
     else
-        #
+        # Setup firewall rules for nfs share
+        __print_red__ "\n\nSetting up firewall rules...\n\n"
         firewall-cmd --add-service=nfs --zone=internal --permanent
         firewall-cmd --add-service=mountd --zone=internal --permanent
         firewall-cmd --add-service=rpc-bind --zone=internal --permanent
@@ -136,7 +135,7 @@ if [ $(mount | grep -i ${__NFS_VOLUME__} | grep -ic ${__JENKINS_DATA_DIR___}) !=
         #
         wait $!
         #
-        printf "\nPorts assignments...\n"
+        __print_red__ "\nPorts assignments...\n"
         firewall-cmd --zone=public --permanent --list-ports
         wait $!
         echo "Local directory created..."
@@ -145,7 +144,7 @@ if [ $(mount | grep -i ${__NFS_VOLUME__} | grep -ic ${__JENKINS_DATA_DIR___}) !=
     fi 
 fi
     # Verify and/or start dbus
-if [[ $(ls -lia /run  | grep -ic "dbus") == 0  ]]; then
+if [ $(ls -lia /run  | grep -ic 'dbus') == 0  ]; then
     echo "Setting up dbus configuration..."
     dbus-uuidgen > /var/lib/dbus/machine-id
     mkdir -p /var/run/dbus
@@ -160,16 +159,16 @@ fi
 function __setup__(){
 ###############################################################################
 
-$(__check_env__)
+__check_env__
 
 wait $!
     # Setup the storage class, persistent volume and persistent volume claim
-if [  $(${__KUBECTL__} get pvc -A &>/dev/null | grep -ic jenkins) == 0  ]; then
-    ${__KUBECTL__} apply -f $(find ~+ -type f -name 'jenkins-volume.yaml')
+if [  $(${__KUBECTL__} get --kubeconfig=${__KUBECONFIG__} pvc -A &>/dev/null | grep -ic jenkins) == 0  ]; then
+    ${__KUBECTL__} apply --kubeconfig=${__KUBECONFIG__} -f $(find ~+ -type f -name 'jenkins-volume.yaml')
     printf "\n${RED}Jenkins persistent volume created...${NC}\n"
     wait $!
 else
-    printf "\n${RED}Jenkins persistent volume exists...${NC}\n"
+    printf "\n${RED}Jenkins persistent volume claim exists...${NC}\n"
 fi
 }
 ###############################################################################
@@ -179,19 +178,20 @@ fi
     # verify __KUBECTL__ binary
 __kube_binary__
     # setup jenkins
-$(__setup__)
+__setup__
 if [ $? != 0 ]; then
-    printf "Something went wrong....exit codes...\n\n"
+    printf "\nSomething went wrong....exit codes...\n\n"
     exit 1
 fi
     # Setup jenkins.rbac.yaml, namespace & service account
-${__KUBECTL__} apply -f $(find ~+ -type f -name 'jenkins-rbac.yaml')
+${__KUBECTL__} apply --kubeconfig=${__KUBECONFIG__} -f $(find ~+ -type f -name 'jenkins-rbac.yaml')
 wait $!
 #     # Setup volume claim
-# ${__KUBECTL__} apply -f jenkins-volume.yaml
+# ${__KUBECTL__} apply --kubeconfig=${__KUBECONFIG__} -f jenkins-volume.yaml
 # wait $!
     # Setup the service account and jenkins deployment
-${__KUBECTL__} apply -f $(find ~+ -type f -name 'jenkins-deployment.yaml')
+${__KUBECTL__} apply --kubeconfig=${__KUBECONFIG__} -f $(find ~+ -type f -name 'jenkins-deployment.yaml')
 wait $!
 
 echo "Completed......"
+
