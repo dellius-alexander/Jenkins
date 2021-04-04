@@ -32,7 +32,7 @@ spec:
       # hostPID: true
       containers:
       - name: jenkins
-        image: registry.dellius.app:5000/jenkins:lts-centos
+        image: dalexander2israel/jenkins:lts-centos
         imagePullPolicy: Always
         resources:
           limits:
@@ -138,5 +138,6 @@ spec:
     - name: slave
       port: 50000
       targetPort: 50000
+  clusterIP: '10.109.10.174'
   externalIPs:
     - 10.0.0.40
