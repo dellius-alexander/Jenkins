@@ -1,0 +1,304 @@
+# https://github.com/marcel-dempers/docker-development-youtube-series/tree/master/jenkins
+# RUN "jenkins-rbac.yaml" FIRST
+---
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: jenkins
+
+---
+
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: jenkins
+  namespace: scalar-jenkins
+
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+# This role binding allows "jenkins" to read pods in the "jenkins" namespace.
+# You need to already have a Role named "pod-reader" in that namespace.
+kind: RoleBinding
+metadata:
+  name: jenkins
+  namespace: scalar-jenkins
+roleRef:
+  # "roleRef" specifies the binding to a Role / ClusterRole
+  kind: Role #this must be Role or ClusterRole
+  name: jenkins # this must match the name of the Role or ClusterRole you wish to bind to
+  apiGroup: rbac.authorization.k8s.io
+subjects:
+# You can specify more than one "subject"
+- kind: ServiceAccount
+  name: jenkins # "name" is case sensitive
+  namespace: jenkins
+
+---
+
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: jenkins
+  namespace: scalar-jenkins
+rules:
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["create","delete","get","list","patch","update","watch"]
+- apiGroups: [""]
+  resources: ["pods/exec"]
+  verbs: ["create","delete","get","list","patch","update","watch"]
+- apiGroups: [""]
+  resources: ["pods/log"]
+  verbs: ["get","list","watch"]
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["create","delete","get","list","patch","update"]
+- apiGroups: [""]
+  resources: ["configmaps"]
+  verbs: ["create","delete","get","list","patch","update"]
+- apiGroups: ["apps"]
+  resources: ["deployments"]
+  verbs: ["create","delete","get","list","patch","update"]
+- apiGroups: [""]
+  resources: ["services"]
+  verbs: ["create","delete","get","list","patch","update"]
+- apiGroups: [""]
+  resources: ["ingresses"]
+  verbs: ["create","delete","get","list","patch","update"]
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jenkins-deployment
+  namespace: scalar-jenkins
+  labels:
+    app: jenkins
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: jenkins
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: jenkins
+    spec:
+      serviceAccountName: jenkins
+      # hostNetwork: true
+      # hostPID: true
+      containers:
+      - name: jenkins
+        image: registry.dellius.app/jenkins:lts-centos-v2.277.2.scaler
+        imagePullPolicy: Always
+        resources:
+          limits:
+            memory: 2048Mi
+            cpu: 500m
+          requests:
+            cpu: 250m
+            memory: 1024Mi
+        env:
+        - name: DOCKER_HOST
+          value: unix:///var/run/docker.sock
+        - name: JAVA_OPTS           
+          value: -Xmx2048m -Dhudson.slaves.NodeProvisioner.MARGIN=50 -Dhudson.slaves.NodeProvisioner.MARGIN0=0.85
+        - name: JAVA_ARGS           # set the correct timezone for jenkins instance
+          value: "-Dorg.apache.commons.jelly.tags.fmt.timeZone=America/New_York"
+        - name: JENKINS_UC
+          value: https://updates.jenkins.io/update-center.json
+        - name: JENKINS_PORT #disables HTTP
+          value: '-1'
+          #configure HTTPS
+        - name: JENKINS_HTTPS_PORT
+          value: '8443'
+        - name: JENKINS_HTTPS_KEYSTORE
+          value: '/etc/jenkins/jenkins_keystore.jks'
+        - name: JENKINS_HTTPS_KEYSTORE_PASSWORD
+          value: 'U2FyYWlAMjAwOQ=='
+        - name: JENKINS_HTTPS_LISTEN_ADDRESS
+          value: 127.0.0.1
+        - name: JENKINS_SVC_PORT_443_TCP_ADDR
+          value: 10.0.0.40
+        ports:
+        - containerPort: 50000
+          name: slave
+          protocol: TCP
+        - containerPort: 8080
+          name: http
+          protocol: TCP
+        - containerPort: 443
+          name: https
+          protocol: TCP
+        volumeMounts:
+        - mountPath: /var/jenkins_home
+          name: jenkins-data
+        - mountPath: /var/run/docker.sock
+          name: docker-host
+        securityContext:
+          privileged: true
+      restartPolicy: Always
+      securityContext:
+        runAsUser: 0
+      terminationGracePeriodSeconds: 30
+      imagePullSecrets:
+      - name: dellius-private-registry 
+      volumes:
+      - name: jenkins-data
+        emptyDir: {}  # Data is not persisted across pod failures
+        # persistentVolumeClaim:    # Data is persisted across pod failures
+        #   claimName: jenkins-pvc
+      - name: docker-host
+        hostPath:
+          path: /var/run/docker.sock
+
+
+---
+
+apiVersion: autoscaling/v1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: jenkins-autoscaler
+  namespace: scalar-jenkins
+  labels:
+    app: jenkins
+spec:
+  maxReplicas: 1
+  minReplicas: 1
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: jenkins-deployment
+  targetCPUUtilizationPercentage: 25
+status:
+  observedGeneration: 1
+  currentReplicas: 1
+  desiredReplicas: 1
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: jenkins-svc
+  namespace: scalar-jenkins
+  labels:
+    app: jenkins
+spec:
+  selector:
+    app: jenkins
+  type: NodePort
+  ports:
+  - name: http
+    port: 8080
+    targetPort: 8080
+    protocol: TCP
+    nodePort: 30880
+  - name: https
+    port: 443
+    targetPort: 443
+    nodePort: 31443
+    protocol: TCP
+  - name: slave
+    port: 50000
+    targetPort: 50000
+    protocol: TCP
+
+# ---
+# apiVersion: networking.k8s.io/v1
+# kind: IngressClass
+# metadata:
+#   name: jenkins-external-lb
+#   namespace: ingress-nginx
+# spec:
+#   controller: jenkins.dellius.app/ingress-nginx-controller
+#   parameters:
+#     apiGroup: k8s.jenkins.dellius.app
+#     kind: IngressParameters
+#     name: jenkins-external-lb
+
+# ---
+# # 
+# apiVersion: networking.k8s.io/v1
+# kind: Ingress
+# metadata:
+#   name: jenkins-ingress
+#   namespace: ingress-nginx
+# spec:
+#   tls:
+#   - hosts:
+#       - jenkins.dellius.app
+#     secretName: ingress-nginx-admission
+#   rules:
+#     - host: jenkins.dellius.app
+#       http:
+#         paths:
+#         - pathType: Prefix
+#           path: "/"
+#           backend:
+#             service:
+#               name: jenkins-svc
+#               port:
+#                 number: 80
+
+# ---
+# # 
+# apiVersion: networking.k8s.io/v1
+# kind: Ingress
+# metadata:
+#   name: jenkins-ingress
+#   namespace: ingress-nginx
+# spec:
+#   rules:
+#   - host: jenkins.dellius.app
+#     http:
+#       paths:
+#       - path: /
+#         pathType: Prefix
+#         backend:
+#           service:
+#             name: jenkins-svc
+#             port:
+#               number: 80
+# ---
+
+# apiVersion: networking.k8s.io/v1
+# kind: Ingress
+# metadata:
+#   name: jenkins-ingress-tls
+#   namespace: scalar-jenkins
+# spec:
+#   tls:
+#   - hosts:
+#       - jenkins.dellius.app
+#     secretName: ingress-nginx-admission
+#   rules:
+#   - host: jenkins.dellius.app
+#     http:
+#       paths:
+#       - path: /login
+#         pathType: Prefix
+#         backend:
+#           service:
+#             name: jenkins-svc
+#             port:
+#               number: 80
+#   - host: jenkins.dellius.app
+#     http:
+#       paths:
+#       - path: /login
+#         pathType: Prefix
+#         backend:
+#           service:
+#             name: jenkins-svc
+#             port:
+#               number: 443

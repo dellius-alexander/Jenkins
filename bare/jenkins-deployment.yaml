@@ -2,7 +2,6 @@
 # RUN "jenkins-rbac.yaml" FIRST
 ---
 
-
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -25,14 +24,13 @@ spec:
     metadata:
       labels:
         app: jenkins
-        tier: frontend
     spec:
       serviceAccountName: jenkins
       # hostNetwork: true
       # hostPID: true
       containers:
       - name: jenkins
-        image: dalexander2israel/jenkins:lts-centos
+        image: registry.dellius.app/jenkins:lts-centos-v2.277.2
         imagePullPolicy: Always
         resources:
           limits:
@@ -43,42 +41,53 @@ spec:
             memory: 1024Mi
         env:
         - name: DOCKER_HOST
-          value: unix://var/run/docker.sock
-        - name: PROJECT_REPO_MAIN
+          value: unix:///var/run/docker.sock
+        - name: PROJECT_REPO_MAIN   # Github repo
           value: https://github.com/dellius-alexander/Testing-Strategy.git
-        - name: JAVA_OPTS
-          value: -Xmx2048m -Dhudson.slaves.NodeProvisioner.MARGIN=50 -Dhudson.slaves.NodeProvisioner.MARGIN0=0.85 
+        - name: JAVA_OPTS           
+          value: -Xmx2048m -Dhudson.slaves.NodeProvisioner.MARGIN=50 -Dhudson.slaves.NodeProvisioner.MARGIN0=0.85
+        - name: JAVA_ARGS           # set the correct timezone for jenkins instance
+          value: "-Dorg.apache.commons.jelly.tags.fmt.timeZone=America/New_York"
         - name: JENKINS_UC
           value: https://updates.jenkins.io/update-center.json
         - name: KUBECONFIG
           value: /var/jenkins_home/secrets/kubeconfig
-        - name: JENKINS_PORT #disable HTTP
+        - name: JENKINS_PORT #disables HTTP
           value: '-1'
           #configure HTTPS
         - name: JENKINS_HTTPS_PORT
-          value: "8443"
+          value: '8443'
         - name: JENKINS_HTTPS_KEYSTORE
-          value: "/etc/jenkins/jenkins_keystore.jks"
+          value: '/etc/jenkins/jenkins_keystore.jks'
         - name: JENKINS_HTTPS_KEYSTORE_PASSWORD
           value: 'U2FyYWlAMjAwOQ=='
         - name: JENKINS_HTTPS_LISTEN_ADDRESS
-          value: '127.0.0.1'
+          value: 127.0.0.1
+        - name: JENKINS_SVC_PORT_443_TCP_ADDR
+          value: 10.0.0.40
         ports:
         - containerPort: 50000
+          name: slave
           protocol: TCP
-        - containerPort: 80
+        - containerPort: 8080
+          name: http
           protocol: TCP
         - containerPort: 443
+          name: https
           protocol: TCP
         volumeMounts:
         - mountPath: /var/jenkins_home
           name: jenkins-data
         - mountPath: /var/run/docker.sock
           name: docker-host
+        securityContext:
+          privileged: true
       restartPolicy: Always
       securityContext:
         runAsUser: 0
       terminationGracePeriodSeconds: 30
+      imagePullSecrets:
+      - name: dellius-private-registry 
       volumes:
       - name: jenkins-data
         # emptyDir: {}  # Data is not persisted across pod failures
@@ -98,9 +107,8 @@ metadata:
   namespace: jenkins
   labels:
     app: jenkins
-    #tier: frontend
 spec:
-  maxReplicas: 2
+  maxReplicas: 1
   minReplicas: 1
   scaleTargetRef:
     apiVersion: apps/v1
@@ -122,22 +130,127 @@ metadata:
   labels:
     app: jenkins
 spec:
+  clusterIP: ${JENKINS_CLUSTER_IP}
+  clusterIPs:
+  - ${JENKINS_CLUSTER_IP}
+  externalTrafficPolicy: Cluster
   selector:
     app: jenkins
-  type: ClusterIP
+  type: NodePort
   ports:
-    - name: http
-      port: 80
-      targetPort: 80
-      protocol: TCP
-      #nodePort: 32003
-    - name: https
-      port: 443
-      targetPort: 443
-      protocol: TCP
-    - name: slave
-      port: 50000
-      targetPort: 50000
-  clusterIP: '10.109.10.174'
-  externalIPs:
-    - 10.0.0.40
+  - name: http
+    port: 8080
+    targetPort: 8080
+    protocol: TCP
+    nodePort: 30080
+  - name: https
+    port: 443
+    targetPort: 443
+    nodePort: 30443
+    protocol: TCP
+  - name: slave
+    port: 50000
+    targetPort: 50000
+    protocol: TCP
+  # externalIPs:
+  #   - 10.0.0.40apiVersion: v1
+# data:
+#   .dockerconfigjson: eyJhdXRocyI6eyJodHRwczovL3JlZ2lzdHJ5LmRlbGxpdXMuYXBwIjp7InVzZXJuYW1lIjoiZGFsZXhhbmRlciIsInBhc3N3b3JkIjoiU2FyYWlAMj$
+# kind: Secret
+# metadata:
+#   creationTimestamp: null
+#   name: dellius-private-registry
+#   namespace: scalar-jenkins
+# type: kubernetes.io/dockerconfigjson
+
+# ---
+
+# ---
+# apiVersion: networking.k8s.io/v1
+# kind: IngressClass
+# metadata:
+#   name: jenkins-external-lb
+#   namespace: ingress-nginx
+# spec:
+#   controller: jenkins.dellius.app/ingress-nginx-controller
+#   parameters:
+#     apiGroup: k8s.jenkins.dellius.app
+#     kind: IngressParameters
+#     name: jenkins-external-lb
+
+# ---
+# # 
+# apiVersion: networking.k8s.io/v1
+# kind: Ingress
+# metadata:
+#   name: jenkins-ingress
+#   namespace: ingress-nginx
+# spec:
+#   tls:
+#   - hosts:
+#       - jenkins.dellius.app
+#     secretName: ingress-nginx-admission
+#   rules:
+#     - host: jenkins.dellius.app
+#       http:
+#         paths:
+#         - pathType: Prefix
+#           path: "/"
+#           backend:
+#             service:
+#               name: jenkins-svc
+#               port:
+#                 number: 80
+
+# ---
+# # 
+# apiVersion: networking.k8s.io/v1
+# kind: Ingress
+# metadata:
+#   name: jenkins-ingress
+#   namespace: ingress-nginx
+# spec:
+#   rules:
+#   - host: jenkins.dellius.app
+#     http:
+#       paths:
+#       - path: /
+#         pathType: Prefix
+#         backend:
+#           service:
+#             name: jenkins-svc
+#             port:
+#               number: 80
+# ---
+
+# apiVersion: networking.k8s.io/v1
+# kind: Ingress
+# metadata:
+#   name: jenkins-ingress-tls
+#   namespace: jenkins
+# spec:
+#   tls:
+#   - hosts:
+#       - jenkins.dellius.app
+#     secretName: ingress-nginx-admission
+#   rules:
+#   - host: jenkins.dellius.app
+#     http:
+#       paths:
+#       - path: /login
+#         pathType: Prefix
+#         backend:
+#           service:
+#             name: jenkins-svc
+#             port:
+#               number: 80
+#   - host: jenkins.dellius.app
+#     http:
+#       paths:
+#       - path: /login
+#         pathType: Prefix
+#         backend:
+#           service:
+#             name: jenkins-svc
+#             port:
+#               number: 443

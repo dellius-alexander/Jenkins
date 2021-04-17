@@ -140,20 +140,48 @@ The Kubernetes Plugin offers different methods to authenticate to a remote Kuber
 
 ### 3. Kubernetes API Server CA Certificate
 Retrieve the Kubernetes API Server CA Certificate this one liner command 
-(the value will be required to configure the kubernetes plugin later on):
+(the value will be required to configure the kubernetes plugin post-installation ):
 
 ```bash
-# Retrieve the Kubernetes API Server CA Certificate
+# Retrieve the Kubernetes API Server CA Certificate for the Kubernetes Plugin
 $ kubectl get secret $(kubectl get sa -n jenkins jenkins \
 -o jsonpath={.secrets[0].name}) \
 -n jenkins -o jsonpath={.data.'ca\.crt'} | base64 --decode
+
+-----BEGIN CERTIFICATE-----
+MIIC5zCCAc+gAwIBAgIBADANBgkqhkiG9w0BAQsFADAVMRMwEQYDVQQDEwprdWJl
+cm5ldGVzMB4XDTIxMDMxNzA3NDExN1oXDTMxMDMxNTA3NDExN1owFTETMBEGA1UE
+......
+-----END CERTIFICATE-----
 ```
-(Note: For more details about those values, have a look at [Kubernetes - Authentication - Service Account Tokens](https://kubernetes.io/docs/reference/access-authn-authz/authentication/#service-account-tokens))
+
+After first login and initial setup, navigate to: <br/>
+
+* `Manage Jenkins --> Manage Plugins --> Available [TAB]` 
+
+Install the below plugins.
+
+* Kubernetes, Kubernetes CLi & Kubernetes Client API
+
+Copy the above CA Certificate after you install the Kubernetes Plugins above and paste it in the `Kubernetes server certificate key` field, by navigating to the below: 
+
+* `Manage Jenkins --> Manage Node and Clouds --> Configure Clouds --> [Add a new cloud](Dropdown) --> Kubernetes`
+
+Expand the `Kubernetes Cloud details` option and fill in the details.
+
+```YAML
+Name: Kubernetes or your-cluster-name
+Kubernetes URL: https://10.240.0.12:6443    # (Kubernetes API Server URL & Port)
+Kubernetes server certificate key: CA Certificate    # (Kubernetes API Server CA Certificate)
+```
+
+(Note: For more details about this topic, have a look at [Kubernetes - Authentication - Service Account Tokens](https://kubernetes.io/docs/reference/access-authn-authz/authentication/#service-account-tokens), [Secrets](https://kubernetes.io/docs/concepts/configuration/secret/), [Access Clusters Using the Kubernetes API](https://kubernetes.io/docs/tasks/administer-cluster/access-cluster-api/))
 
 ---
 ### 4. Docker server REST API URL
 
 The Docker daemon can listen for Docker Engine API requests via three different types of Socket: 
+
 *Note: select a link for more details.*
 
 - [unix:///var/run/docker.sock](https://docs.docker.com/engine/reference/commandline/dockerd/#daemon-socket-option)
@@ -167,6 +195,17 @@ For this project we used the [unix:///var/run/docker.sock](https://docs.docker.c
 *Note: If you’re using an HTTPS encrypted socket, keep in mind that only TLS1.0 and greater are supported. Protocols SSLv3 and under are not supported anymore for security reasons.*
 
 The daemon listens on  but you can Bind Docker to another host/port or a Unix socket.
+
+```
+
+```
+
+```
+# Jenkins Host/Container
+
+
+```
+
 
 ---
 
