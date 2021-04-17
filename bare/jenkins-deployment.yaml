@@ -54,13 +54,6 @@ spec:
           value: /var/jenkins_home/secrets/kubeconfig
         - name: JENKINS_PORT #disables HTTP
           value: '-1'
-          #configure HTTPS
-        - name: JENKINS_HTTPS_PORT
-          value: '8443'
-        - name: JENKINS_HTTPS_KEYSTORE
-          value: '/etc/jenkins/jenkins_keystore.jks'
-        - name: JENKINS_HTTPS_KEYSTORE_PASSWORD
-          value: 'U2FyYWlAMjAwOQ=='
         - name: JENKINS_HTTPS_LISTEN_ADDRESS
           value: 127.0.0.1
         - name: JENKINS_SVC_PORT_443_TCP_ADDR
@@ -130,9 +123,6 @@ metadata:
   labels:
     app: jenkins
 spec:
-  clusterIP: ${JENKINS_CLUSTER_IP}
-  clusterIPs:
-  - ${JENKINS_CLUSTER_IP}
   externalTrafficPolicy: Cluster
   selector:
     app: jenkins
