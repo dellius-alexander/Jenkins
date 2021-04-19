@@ -12,9 +12,11 @@ RUN echo "Jenkins home: /var/jenkins_home"
 # Pipelines with Blue Ocean UI and Kubernetes
 RUN jenkins-plugin-cli --plugins blueocean kubernetes
 # Setup environment variables
-ENV DOCKER_HOST=unix:///var/run/docker.sock
+ENV DOCKER_HOST=unix://var/run/docker.sock
 ENV HOST_UID=1003
 ENV JENKINS_HOME=/var/jenkins_home
+## Remember to place the pre-configured k8s secret for jenkins 
+## service account holder.
 ENV KUBECONFIG=/var/jenkins_home/secrets/kubeconfig
 # Update & install docker, kubectl, kubelet
 RUN yum update -y && yum install -y yum-utils
