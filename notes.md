@@ -97,9 +97,12 @@ Webhooks require a few configuration options before you can make use of them:
           ```
        - paste the above token into `Secret` field on `Webhook` form.
 
-     - Export `SECRET_TOKEN` environment variable with secret on your server to be picked up when validating a POST webhooks authenticity.
+     - Export `SECRET_TOKEN` environment variable with secret on your jenkins server to be picked up when validating a POST webhooks authenticity.
           ```bash
-          $ export SECRET_TOKEN="1a5720efa7db9f160c7716f4b624a789973011ec54b1ee284177f19989d35e13a98eef87b288691e493b99333fa9d9780ee08f576e971b72bd41f586f3a49b2a"                    
+          # exec into jenkins and export the SECRET_TOKEN
+          $ kubectl exec -it -n jenkins jenkins-deployment-<some hash> -- sh -c "export SECRET_TOKEN=1a5720efa7db9f160c7716f4b624a789973011ec54b1ee284177f19989d35e13a98eef87b288691e493b99333fa9d9780ee08f576e971b72bd41f586f3a49b2a"         
+          # verify the export
+          $ kubectl exec -it -n jenkins jenkins-deployment-<some hash> -- sh -c "printenv | grep -i 'secret_token'"           
           ```
           
           - ***Please keep in mind you can edit these values at any time on your server or Github.***

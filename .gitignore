@@ -5,5 +5,6 @@ jenkins.env
 !jenkins.env.example
 private-docker-registry.yaml
 .jenkins_plugins
+github-secret.yaml
 # Remove Directories
 
