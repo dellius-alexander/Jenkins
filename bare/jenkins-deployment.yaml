@@ -58,6 +58,11 @@ spec:
           value: 127.0.0.1
         - name: JENKINS_SVC_PORT_443_TCP_ADDR
           value: 10.0.0.40
+        - name: SECRET_TOKEN  # The Github access token secret
+          valueFrom:
+            secretKeyRef:
+              name: github-secret-token  
+              key: SECRET_TOKEN             
         ports:
         - containerPort: 50000
           name: slave

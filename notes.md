@@ -68,6 +68,24 @@ Webhooks require a few configuration options before you can make use of them:
       - The application/json content type will deliver the JSON payload directly as the body of the POST request.
       - The application/x-www-form-urlencoded content type will send the JSON payload as a form parameter called payload.
   - [Secret](https://docs.github.com/en/developers/webhooks-and-events/securing-your-webhooks): Setting a webhook secret allows you to ensure that POST requests sent to the payload URL are from GitHub.
+      - If you have docker installed you can create your own random secret.
+          ```bash
+          # Increase secret length by N, [ .hex(N) ] where N is the length of your generated secret 
+          $ docker run --rm -it ruby:latest /bin/sh -c "ruby -rsecurerandom -e 'puts SecureRandom.hex(64).downcase'"
+          1a5720efa7db9f160c7716f4b624a789973011ec54b1ee284177f19989d35e13a98eef87b288691e493b99333fa9d9780ee08f576e971b72bd41f586f3a49b2a
+          # OR use a more simplified version adding uppercase function
+          docker run --rm -it ruby:latest ruby -rsecurerandom -e 'puts SecureRandom.hex(32).upcase' 
+          B2A3E7387FBA9568C3B4CBF8A40BF5095E926432A27664B0ECB94EFB2547263F
+          ```
+       - paste the above token into `Secret` field on `Webhook` form.
+
+     - Export `SECRET_TOKEN` environment variable with secret on your server to be picked up when validating a POST webhooks authenticity.
+          ```bash
+          $ export SECRET_TOKEN="1a5720efa7db9f160c7716f4b624a789973011ec54b1ee284177f19989d35e13a98eef87b288691e493b99333fa9d9780ee08f576e971b72bd41f586f3a49b2a"                    
+          ```
+          
+          - ***Please keep in mind you can edit these values at any time on your server or Github.***
+      
   - SSL verificatio: If your "Payload URL" is a secure site (HTTPS), you will have the option to configure the SSL verification settings. If your "Payload URL" is not secure (HTTP), GitHub will not display this option. 
   - Active: By default, webhook deliveries are "Active." You can choose to disable the delivery of webhook payloads by deselecting "Active."
   - Events: Events are at the core of webhooks. These webhooks fire whenever a certain action is taken on the repository, which your server's payload URL intercepts and acts upon.
@@ -176,6 +194,6 @@ Add a note for your token and select:
 - user <br/>|__ read:user - Read ALL user profile data <br/>|__ user:email - Access user email addresses (read-only) 
 - *Optional: workflow - Update GitHub Action workflows*
  
-***Note: Copy your `Auth Token` in a safe place for later use in `Jenkins`.  Use the token to create a `Username & Password` credentials in Jenkins credentials manager and give it a discriptive name such as, `"github-access-token"`.***
+***Note: Copy your `Auth Token` in a safe place for use in `Jenkins`.  Use the token to create a `Username & Password` credentials in Jenkins credentials manager and give it a discriptive name such as, `"github-access-token"`.***
 
-Now you will use these credentials to access Github during build job runtime.
+Now you will use these credentials to access Github during build job runtime events.
