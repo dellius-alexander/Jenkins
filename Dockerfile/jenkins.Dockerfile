@@ -3,7 +3,7 @@
 ################################################################
 ################################################################
 #FROM jenkins/jenkins:lts-centos
-FROM registry.dellius.app/jenkins:lts-centos-v2.277.2 
+FROM registry.dellius.app/jenkins:lts-centos-v2.277.3
 # Make changes as user root
 USER root
 RUN yum update && yum update -y

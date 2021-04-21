@@ -30,7 +30,7 @@ spec:
       # hostPID: true
       containers:
       - name: jenkins
-        image: registry.dellius.app/jenkins:lts-centos-v2.277.2
+        image: registry.dellius.app/jenkins:lts-centos-v2.277.3
         imagePullPolicy: Always
         resources:
           limits:
