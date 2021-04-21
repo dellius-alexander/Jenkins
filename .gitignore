@@ -3,7 +3,6 @@ jenkinsfile.example
 .scratch
 jenkins.env
 !jenkins.env.example
-notes.md
 private-docker-registry.yaml
 .jenkins_plugins
 # Remove Directories
