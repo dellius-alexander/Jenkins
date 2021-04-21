@@ -54,11 +54,12 @@ pipeline {
 
 ---
 
-## <h2><a href="https://docs.github.com/en/developers/webhooks-and-events/creating-webhooks" id="github-webhook">[Github Webhook](https://docs.github.com/en/developers/webhooks-and-events/creating-webhooks "https://docs.github.com/en/developers/webhooks-and-events/creating-webhooks")</a></h2>
+## <a href="https://docs.github.com/en/developers/webhooks-and-events/creating-webhooks" id="github-webhook">[Github Webhook](https://docs.github.com/en/developers/webhooks-and-events/creating-webhooks "https://docs.github.com/en/developers/webhooks-and-events/creating-webhooks")</a>
 
 In order to `setup Jenkins to build automatically` you will have to setup a webhook on your repository to trigger a build every time a new commit is made. 
 
-To use Github webhooks in Jenkins, must install the `Github 
+To use Github webhooks in Jenkins, you must install the [Github plugin](https://plugins.jenkins.io/github/) from the `Manage Plugins` console.
+
 Webhooks require a few configuration options before you can make use of them:
 
   - Payload URL: The payload URL is the URL of the server that will receive the webhook POST requests.
