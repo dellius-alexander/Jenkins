@@ -228,69 +228,69 @@ DOCKER_HOST='tcp://[host]:[port][path] or unix://path'
 <br/>
     See below sample declarative pipeline:    
 
-    ```groovy
-    pipeline{
-        agent any
-        options { // use ansi color xterm
-            ansiColor('xterm')
-        }
-        environment { // Define an environment variable to hold our credentials secret for use during build stages
-            // DOCKER_CERT_PATH is automatically picked up by the Docker client
-            // Usage: $DOCKER_CERT_PATH or $DOCKER_CERT_PATH_USR or $DOCKER_CERT_PATH_PSW
-            DOCKER_CERT_PATH = credentials('PRIVATE_CNTR_REGISTRY')
-        }
-        stages {
-            stage('Build Test Images...'){
-                steps {
-                    script {
-                        // Define some variables
-                        env.BUILD_RESULTS="failure"    
-                        def jenkins_image
-                        def jenkins_dockerfile
-                        
-                        try{ // try and catch errors
-                            // Test environment...
-                            sh '''
-                            ls -lia;
-                            env;
-                            '''
-                            // name the dockerfile
-                            jenkins_dockerfile = 'jenkins.Dockerfile'
-                            // build the cypress test image
-                            jenkins_image = docker.build("jenkins:${env.BUILD_ID}", "-f ${jenkins_dockerfile} .")
-                            // Login to private container registry:
-                            //   - [ registry.dellius.app ]
-                            //   - Image: registry.dellius.app/jenkins:lts-centos-v2.277.2          
-                            sh '''
-                            docker login -u $DOCKER_CERT_PATH_USR -p $DOCKER_CERT_PATH_PSW registry.dellius.app;
-                            '''
-                            // tag the cypress image to private repository
-                            sh '''
-                            docker tag cypress/custom:${BUILD_ID} registry.dellius.app/jenkins:lts-centos-v2.277.3;
-                            '''
-                            // Push image to private container registry
-                            sh '''
-                            docker push registry.dellius.app/jenkins:lts-centos-v2.277.3;
-                            '''
-                            env.BUILD_RESULTS="success"
-                            sh '''
-                            echo "Intermediate build ${BUILD_RESULTS}......";
-                            '''
-                        }
-                        catch(e){
-                            env.BUILD_RESULTS="failure"
-                            sh '''
-                            echo "Intermediate build ${BUILD_RESULTS}......";
-                            '''
-                            throw e
-                        }
-                        cleanWs() // clean up workspace post-Build
-                    } // End of script block
-                } // Enc of steps()
-            } // End of Build Test images stage()
-        } // End of stages
-    } // End of pipeline
-    ```
+```Groovy
+pipeline{
+    agent any
+    options { // use ansi color xterm
+        ansiColor('xterm')
+    }
+    environment { // Define an environment variable to hold our credentials secret for use during build stages
+        // DOCKER_CERT_PATH is automatically picked up by the Docker client
+        // Usage: $DOCKER_CERT_PATH or $DOCKER_CERT_PATH_USR or $DOCKER_CERT_PATH_PSW
+        DOCKER_CERT_PATH = credentials('PRIVATE_CNTR_REGISTRY')
+    }
+    stages {
+        stage('Build Test Images...'){
+            steps {
+                script {
+                    // Define some variables
+                    env.BUILD_RESULTS="failure"    
+                    def jenkins_image
+                    def jenkins_dockerfile
+                    
+                    try{ // try and catch errors
+                        // Test environment...
+                        sh '''
+                        ls -lia;
+                        env;
+                        '''
+                        // name the dockerfile
+                        jenkins_dockerfile = 'jenkins.Dockerfile'
+                        // build the cypress test image
+                        jenkins_image = docker.build("jenkins:${env.BUILD_ID}", "-f ${jenkins_dockerfile} .")
+                        // Login to private container registry:
+                        //   - [ registry.dellius.app ]
+                        //   - Image: registry.dellius.app/jenkins:lts-centos-v2.277.2          
+                        sh '''
+                        docker login -u $DOCKER_CERT_PATH_USR -p $DOCKER_CERT_PATH_PSW registry.dellius.app;
+                        '''
+                        // tag the cypress image to private repository
+                        sh '''
+                        docker tag cypress/custom:${BUILD_ID} registry.dellius.app/jenkins:lts-centos-v2.277.3;
+                        '''
+                        // Push image to private container registry
+                        sh '''
+                        docker push registry.dellius.app/jenkins:lts-centos-v2.277.3;
+                        '''
+                        env.BUILD_RESULTS="success"
+                        sh '''
+                        echo "Intermediate build ${BUILD_RESULTS}......";
+                        '''
+                    }
+                    catch(e){
+                        env.BUILD_RESULTS="failure"
+                        sh '''
+                        echo "Intermediate build ${BUILD_RESULTS}......";
+                        '''
+                        throw e
+                    }
+                    cleanWs() // clean up workspace post-Build
+                } // End of script block
+            } // Enc of steps()
+        } // End of Build Test images stage()
+    } // End of stages
+} // End of pipeline
+```
 
 3. Execute a bash shell script instead of a declarative pipeline Jenkinsfile
 
