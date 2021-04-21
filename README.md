@@ -1,7 +1,7 @@
 # Jenkins Deployment
 ---
 *Note: To create your own bare-metal k8s cluster see [kubernetes bare-metal](https://github.com/dellius-alexander/kubernetes)*<br/>
-*Please see [Jenkins House Cleaning Considerations](notes.md) for post-installation configurations to harden your Jenkins instance.*
+*Please see [Jenkins House Cleaning Considerations](notes.md) for post-installation configurations to harden your Jenkins instance.<br/>Please see required [Jenkins Plugins for this project](notes.md#jenkins-plugins).*
 
 ---
 
@@ -189,9 +189,23 @@ The Docker daemon can listen for Docker Engine API requests via three different 
 - [tcp://\<Docker Host IP address>:\<Service Port>](https://docs.docker.com/engine/reference/commandline/dockerd/#daemon-socket-option)
 - [fd](https://docs.docker.com/engine/reference/commandline/dockerd/#daemon-socket-option)
 
-By default, a unix domain socket (or IPC socket) is created at **/var/run/docker.sock**, requiring either root permission, or docker group membership.
+By default, a unix domain socket (or IPC socket) is created at `/var/run/docker.sock` on the host of your Jenkins Deployment, requiring either root permission, or docker group membership. Jenkins can now have access to the host docker container runtime to use as a build and test sandbox, and much more.
 
-For this project we used the [unix:///var/run/docker.sock](https://docs.docker.com/engine/reference/commandline/dockerd/#daemon-socket-option) socket option to connect to the docker daemon on our k8s host.
+For this project we used the [unix:///var/run/docker.sock](https://docs.docker.com/engine/reference/commandline/dockerd/#daemon-socket-option) socket option to connect to the docker daemon on our Jenkins host.
+
+```bash
+# Run the command to locate the jenkins user to add to your docker host
+$ kubectl exec -it -n jenkins jenkins-deployment-85566bdc67-zb2fs -- cat /etc/passwd | grep -i jenkins
+# you output should look like this
+jenkins:x:1009:1000::/var/jenkins_home:/bin/bash
+...
+# On the docker host add the jenkins user
+$ sudo useradd --uid 1009 -MU jenkins
+$ sudo usermod -aG docker jenkins
+$ sudo newgrp docker
+```
+
+Jenkins will now be able to access docker daemon on the Jenkins host to build, test and deploy.
 
 *Note: If you’re using an HTTPS encrypted socket, keep in mind that only TLS1.0 and greater are supported. Protocols SSLv3 and under are not supported anymore for security reasons.*
 
@@ -217,10 +231,10 @@ DOCKER_HOST='tcp://[host]:[port][path] or unix://path'
     ```groovy
     pipeline{
         agent any
-        options {
+        options { // use ansi color xterm
             ansiColor('xterm')
         }
-        environment { // Define some environment variables
+        environment { // Define an environment variable to hold our credentials secret for use during build stages
             // DOCKER_CERT_PATH is automatically picked up by the Docker client
             // Usage: $DOCKER_CERT_PATH or $DOCKER_CERT_PATH_USR or $DOCKER_CERT_PATH_PSW
             DOCKER_CERT_PATH = credentials('PRIVATE_CNTR_REGISTRY')

@@ -4,6 +4,24 @@ The [Jenkins documentation](https://www.jenkins.io/doc/) provides a rich library
 
 ---
 
+## <a id="jenkins-plugins" href="https://plugins.jenkins.io/">Jenkins Plugins</a>
+
+To find `Jenkins Plugins Console` from Jenkins Home, go to:
+- `[Manage Jenkins] --> []` 
+
+### Plugins required in this build include:
+```
+Docker
+Kubernetes
+Github
+Github API
+Groovy Library
+Blue Ocean
+Matrix Authorization Strategy
+```
+
+---
+
 ## <a href="https://www.jenkins.io/doc/book/pipeline/development/#pipeline-development-tools">Pipeline Development Tools</a>
 
 vscode extension: Jenkins Pipeline Linter Connector 
@@ -165,7 +183,7 @@ The [Matrix Authorization Strategy](https://plugins.jenkins.io/matrix-auth/) all
 
 The plugin can be downloaded from the `Manage Plugins` console:
 
-- [Manage Jenkins] --> [Manage Plugins] --> (select plugins)
+- `[Manage Jenkins] --> [Manage Plugins] --> (select plugins)`
     - [Matrix Authorization Strategy](https://plugins.jenkins.io/matrix-auth/)
 
 ### Setting up `Matrix-based Security`:
@@ -197,3 +215,5 @@ Add a note for your token and select:
 ***Note: Copy your `Auth Token` in a safe place for use in `Jenkins`.  Use the token to create a `Username & Password` credentials in Jenkins credentials manager and give it a discriptive name such as, `"github-access-token"`.***
 
 Now you will use these credentials to access Github during build job runtime events.
+
+---
