@@ -7,7 +7,7 @@ The [Jenkins documentation](https://www.jenkins.io/doc/) provides a rich library
 ## <a id="jenkins-plugins" href="https://plugins.jenkins.io/">Jenkins Plugins</a>
 
 To find `Jenkins Plugins Console` from Jenkins Home, go to:
-- `[Manage Jenkins] --> []` 
+- `[Manage Jenkins] --> [Manage Plugins]` 
 
 ### Plugins required in this build include:
 ```
