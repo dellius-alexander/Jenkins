@@ -30,7 +30,7 @@ spec:
       # hostPID: true
       containers:
       - name: jenkins
-        image: registry.dellius.app/jenkins:lts-centos-v2.277.2
+        image: registry.dellius.app/jenkins:lts-centos-v2.277.3
         imagePullPolicy: Always
         resources:
           limits:
@@ -59,8 +59,8 @@ spec:
         - name: SECRET_TOKEN  # The Github access token secret
           valueFrom:
             secretKeyRef:
-              name: github-secret-token  
-              key: SECRET_TOKEN          
+              key: password
+              name: github-secret-token         
         ports:
         - containerPort: 50000
           name: slave
