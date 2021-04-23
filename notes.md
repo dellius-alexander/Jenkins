@@ -95,15 +95,36 @@ Webhooks require a few configuration options before you can make use of them:
           docker run --rm -it ruby:latest ruby -rsecurerandom -e 'puts SecureRandom.hex(32).upcase' 
           B2A3E7387FBA9568C3B4CBF8A40BF5095E926432A27664B0ECB94EFB2547263F
           ```
-       - paste the above token into `Secret` field on `Webhook` form.
+       - Paste the above token into `Secret` field on `Webhook` form.
 
-     - Export `SECRET_TOKEN` environment variable with secret on your jenkins server to be picked up when validating a POST webhooks authenticity.
+     - Create a `secret` using `kubectl` on your master node:
+
           ```bash
-          # exec into jenkins and export the SECRET_TOKEN
-          $ kubectl exec -it -n jenkins jenkins-deployment-<some hash> -- sh -c "export SECRET_TOKEN=1a5720efa7db9f160c7716f4b624a789973011ec54b1ee284177f19989d35e13a98eef87b288691e493b99333fa9d9780ee08f576e971b72bd41f586f3a49b2a"         
-          # verify the export
-          $ kubectl exec -it -n jenkins jenkins-deployment-<some hash> -- sh -c "printenv | grep -i 'secret_token'"           
+          # Create a secret with the above random secret
+          $ kubectl create secret generic github-secret-token \
+          --type=kubernetes.io/basic-auth --namespace=jenkins \
+          --from-literal=username=github-secret-token \
+          --from-literal=password="1a5720efa7db9f160c7716f4b624a789973011ec54b1ee284177f19989d35e13a98eef87b288691e493b99333fa9d9780ee08f576e971b72bd41f586f3a49b2a"   
+          secret/github-secret-token created       
           ```
+      - Now add environment variable context to the [jenkins-deployment.yaml](./bare/jenkins-deployment.yaml) file to access your secret within the `Jenkins Pod` as an environmental variable. 
+          ```yaml
+          env:
+          # Per Github the name of your secret token must be "SECRET_TOKEN"
+          - name: SECRET_TOKEN  # The Github access token secret
+            valueFrom:
+              secretKeyRef:
+                key: password
+                name: github-secret-token 
+          ```
+      - After you re-deploy the yaml file, lets check the Jenkins Pod to verify our secret is in fact set.
+
+        ```Bash
+        # Run the command to check the Pod environmental variables
+        kubectl exec -it -n jenkins jenkins-deployment-6d7f9bfddb-n7khn -- printenv | grep -i token
+        # We verify that the Jenkins Pod has picked up our environmental variable
+        SECRET_TOKEN=1a5720efa7db9f160c7716f4b624a789973011ec54b1ee284177f19989d35e13a98eef87b288691e493b99333fa9d9780ee08f576e971b72bd41f586f3a49b2a
+        ```
           
           - ***Please keep in mind you can edit these values at any time on your server or Github.***
       
@@ -122,7 +143,7 @@ You can install webhooks on an organization or on a specific repository. To set 
       ```yaml
       Payload URL: https://<your/server/url>/github-webhook/
       Content type: application/json
-      Secret: [leave blank]
+      Secret: 1a5720efa7db9f160c7716f4b624a789973011ec54b1ee284177f19989d35e13a98eef87b288691e493b99333fa9d9780ee08f576e971b72bd41f586f3a49b2a
       SSL verification: [select Enable SSL verification]
       Which events would you like to trigger this webhook: [Let me select individual events.]
       # select the below options and select [Add webhook]

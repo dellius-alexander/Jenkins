@@ -60,7 +60,7 @@ spec:
           valueFrom:
             secretKeyRef:
               key: password
-              name: github-secret-token         
+              name: github-secret-token-2       
         ports:
         - containerPort: 50000
           name: slave
