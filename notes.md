@@ -57,7 +57,7 @@ agent {
 
 The pipeline `label` refers to the `node name` used to run the jenkins builds. This can be found in cloud services.
 Go to:
-- [ Manage Jenkins ] ---> [ Manage Nodes... ] <br/> 
+- `[ Manage Jenkins ] ---> [ Manage Nodes and Cloud ]` <br/> 
   You can chose one of these nodes as your agent. Take the string from the column "name". If the name of one of your nodes is for example "master" you can write:
 
 ```
