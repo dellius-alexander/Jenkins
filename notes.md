@@ -34,14 +34,14 @@ validation.
 - jenkins.pipeline.linter.connector.url is the endpoint at which 
   your Jenkins Server expects the POST request, containing your 
   Jenkinsfile which you want to validate. Typically this points 
-  to http://<your_jenkins_server:port>/pipeline-model-converter/validate.
-- jenkins.pipeline.linter.connector.user allows you to specify 
-  your Jenkins username.
-- jenkins.pipeline.linter.connector.pass allows you to specify 
-  your Jenkins password.
+  to: `http://<your_jenkins_server:port>/pipeline-model-converter/validate`
+- jenkins.pipeline.linter.connector.user: allows you to specify 
+  your `Jenkins username`
+- jenkins.pipeline.linter.connector.pass: allows you to specify 
+  your `Jenkins password`
 - jenkins.pipeline.linter.connector.crumbUrl has to be specified 
   if your Jenkins Server has CRSF protection enabled. Typically 
-  this points to http://<your_jenkins_server:port>/crumbIssuer/api/xml?xpath=concat(//crumbRequestField,%22:%22,//crumb). ​
+  this points to: `http://<your_jenkins_server:port>/crumbIssuer/api/xml?xpath=concat(//crumbRequestField,%22:%22,//crumb)`
 
 ---
 
@@ -57,7 +57,8 @@ agent {
 
 The pipeline `label` refers to the `node name` used to run the jenkins builds. This can be found in cloud services.
 Go to:
-- [] Manage Jenkins ] ---> [ Manage Nodes... ]. You can chose one of these nodes as your agent. Take the string from the column "name". If the name of one of your nodes is for example "master" you can write:
+- [ Manage Jenkins ] ---> [ Manage Nodes... ] <br/> 
+  You can chose one of these nodes as your agent. Take the string from the column "name". If the name of one of your nodes is for example "master" you can write:
 
 ```
 pipeline {
