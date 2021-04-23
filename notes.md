@@ -127,7 +127,7 @@ Webhooks require a few configuration options before you can make use of them:
         SECRET_TOKEN=1a5720efa7db9f160c7716f4b624a789973011ec54b1ee284177f19989d35e13a98eef87b288691e493b99333fa9d9780ee08f576e971b72bd41f586f3a49b2a
         ```
           
-          - ***Please keep in mind you can edit these values at any time on your server or Github.***
+          - ***Please keep in mind you can edit these values at any time on your server or Github. If you setup your secret token post install `Please delete the current running pod for the new config to take affect as a new Pod is create.`***
       
   - SSL verificatio: If your "Payload URL" is a secure site (HTTPS), you will have the option to configure the SSL verification settings. If your "Payload URL" is not secure (HTTP), GitHub will not display this option. 
   - Active: By default, webhook deliveries are "Active." You can choose to disable the delivery of webhook payloads by deselecting "Active."
