@@ -7,47 +7,52 @@ The [Jenkins documentation](https://www.jenkins.io/doc/) provides a rich library
 ## <a id="jenkins-plugins" href="https://plugins.jenkins.io/">Jenkins Plugins</a>
 
 To find `Jenkins Plugins Console` from Jenkins Home, go to:
-- `[Manage Jenkins] --> [Manage Plugins]` 
+
+- `[Manage Jenkins] --> [Manage Plugins]`
 
 ### Plugins required in this build include:
-```
-Docker
-Kubernetes
-Github
-Github API
-Groovy Library
-Blue Ocean
-Matrix Authorization Strategy
+
+```yaml
+plugins:
+  Docker
+  Kubernetes
+  Github
+  Github API
+  Groovy Library
+  Blue Ocean
+  Matrix Authorization Strategy
 ```
 
 ---
 
 ## <a href="https://www.jenkins.io/doc/book/pipeline/development/#pipeline-development-tools">Pipeline Development Tools</a>
 
-vscode extension: Jenkins Pipeline Linter Connector 
+vscode extension: Jenkins Pipeline Linter Connector
+
 - Author: by Jan Joerke
-- Url: https://marketplace.visualstudio.com/items?itemName=janjoerke.jenkins-pipeline-linter-connector
+- Url: [Jenkins Pipeline Linter Connector](https://marketplace.visualstudio.com/items?itemName=janjoerke.jenkins-pipeline-linter-connector)
 
 The extension adds four settings entries to VS Code which you
 have to use to configure the Jenkins Server you want to use for
 validation.
-- jenkins.pipeline.linter.connector.url is the endpoint at which 
-  your Jenkins Server expects the POST request, containing your 
-  Jenkinsfile which you want to validate. Typically this points 
+
+- jenkins.pipeline.linter.connector.url is the endpoint at which
+  your Jenkins Server expects the POST request, containing your
+  Jenkinsfile which you want to validate. Typically this points
   to: `http://<your_jenkins_server:port>/pipeline-model-converter/validate`
-- jenkins.pipeline.linter.connector.user: allows you to specify 
+- jenkins.pipeline.linter.connector.user: allows you to specify
   your `Jenkins username`
-- jenkins.pipeline.linter.connector.pass: allows you to specify 
+- jenkins.pipeline.linter.connector.pass: allows you to specify
   your `Jenkins password`
-- jenkins.pipeline.linter.connector.crumbUrl has to be specified 
-  if your Jenkins Server has CRSF protection enabled. Typically 
+- jenkins.pipeline.linter.connector.crumbUrl has to be specified
+  if your Jenkins Server has CRSF protection enabled. Typically
   this points to: `http://<your_jenkins_server:port>/crumbIssuer/api/xml?xpath=concat(//crumbRequestField,%22:%22,//crumb)`
 
 ---
 
 ## <a href="https://www.jenkins.io/doc/book/pipeline/syntax/#agent-parameters">Pipeline Labels:</a>
 
-Execute the Pipeline, or stage, on an agent available in the Jenkins environment with the provided label. For example: 
+Execute the Pipeline, or stage, on an agent available in the Jenkins environment with the provided label. For example:
 
 ```groovy
 agent { 
@@ -57,10 +62,14 @@ agent {
 
 The pipeline `label` refers to the `node name` used to run the jenkins builds. This can be found in cloud services.
 Go to:
-- `[ Manage Jenkins ] ---> [ Manage Nodes and Cloud ]` <br/> 
-  You can chose one of these nodes as your agent. Take the string from the column "name". If the name of one of your nodes is for example "master" you can write:
 
-```
+- `[ Manage Jenkins ] ---> [ Manage Nodes and Cloud ]`
+
+<br/>
+
+You can chose one of these nodes as your agent. Take the string from the column "name". If the name of one of your nodes is for example "master" you can write:
+
+```Groovy
 pipeline {
     agent {
         label 'master' || 'worker1'
@@ -75,71 +84,76 @@ pipeline {
 
 ## <a href="https://docs.github.com/en/developers/webhooks-and-events/creating-webhooks" id="github-webhook">[Github Webhook](https://docs.github.com/en/developers/webhooks-and-events/creating-webhooks "https://docs.github.com/en/developers/webhooks-and-events/creating-webhooks")</a>
 
-In order to `setup Jenkins to build automatically` you will have to setup a webhook on your repository to trigger a build every time a new commit is made. 
+In order to `setup Jenkins to build automatically` you will have to setup a webhook on your repository to trigger a build every time a new commit is made.
 
 To use Github webhooks in Jenkins, you must install the [Github plugin](https://plugins.jenkins.io/github/) from the `Manage Plugins` console.
 
 Webhooks require a few configuration options before you can make use of them:
 
-  - Payload URL: The payload URL is the URL of the server that will receive the webhook POST requests.
-  - Content type: Webhooks can be delivered using different content types:
+- Payload URL: The payload URL is the URL of the server that will receive the webhook POST requests.
+- Content type: Webhooks can be delivered using different content types:
 
-      - The application/json content type will deliver the JSON payload directly as the body of the POST request.
-      - The application/x-www-form-urlencoded content type will send the JSON payload as a form parameter called payload.
-  - [Secret](https://docs.github.com/en/developers/webhooks-and-events/securing-your-webhooks): Setting a webhook secret allows you to ensure that POST requests sent to the payload URL are from GitHub.
-      - If you have docker installed you can create your own random secret.
-          ```bash
-          # Increase secret length by N, [ .hex(N) ] where N is the length of your generated secret 
-          $ docker run --rm -it ruby:latest /bin/sh -c "ruby -rsecurerandom -e 'puts SecureRandom.hex(64).downcase'"
-          1a5720efa7db9f160c7716f4b624a789973011ec54b1ee284177f19989d35e13a98eef87b288691e493b99333fa9d9780ee08f576e971b72bd41f586f3a49b2a
-          # OR use a more simplified version adding uppercase function
-          docker run --rm -it ruby:latest ruby -rsecurerandom -e 'puts SecureRandom.hex(32).upcase' 
-          B2A3E7387FBA9568C3B4CBF8A40BF5095E926432A27664B0ECB94EFB2547263F
-          ```
-       - Paste the above token into `Secret` field on `Webhook` form.
+  - The application/json content type will deliver the JSON payload directly as the body of the POST request.
+  - The application/x-www-form-urlencoded content type will send the JSON payload as a form parameter called payload.
+- [Secret](https://docs.github.com/en/developers/webhooks-and-events/securing-your-webhooks): Setting a secret is the best way to secure your webhook, ensuring that POST requests sent to the payload URL are from GitHub.
+  - If you have docker installed you can create your own random secret. Paste the below hash token into `Secret` field on `Webhook` form.
 
-     - Create a `secret` using `kubectl` on your master node:
+    ```bash
+    # Increase secret length by N, [ .hex(N) ] where N is the length of your generated secret 
+    $ docker run --rm -it ruby:latest /bin/sh -c "ruby -rsecurerandom -e 'puts SecureRandom.hex(64).downcase'"
+    1a5720efa7db9f160c7716f4b624a789973011ec54b1ee284177f19989d35e13a98eef87b288691e493b99333fa9d9780ee08f576e971b72bd41f586f3a49b2a
+    # OR use a more simplified version adding uppercase function
+    docker run --rm -it ruby:latest ruby -rsecurerandom -e 'puts SecureRandom.hex(32).upcase' 
+    B2A3E7387FBA9568C3B4CBF8A40BF5095E926432A27664B0ECB94EFB2547263F
+    ```
 
-          ```bash
-          # Create a secret with the above random secret
-          $ kubectl create secret generic github-secret-token \
-          --type=kubernetes.io/basic-auth --namespace=jenkins \
-          --from-literal=username=github-secret-token \
-          --from-literal=password="1a5720efa7db9f160c7716f4b624a789973011ec54b1ee284177f19989d35e13a98eef87b288691e493b99333fa9d9780ee08f576e971b72bd41f586f3a49b2a"   
-          secret/github-secret-token created       
-          ```
-      - Now add environment variable context to the [jenkins-deployment.yaml](./bare/jenkins-deployment.yaml) file to access your secret within the `Jenkins Pod` as an environmental variable. 
-          ```yaml
-          env:
-          # Per Github the name of your secret token must be "SECRET_TOKEN"
-          - name: SECRET_TOKEN  # The Github access token secret
-            valueFrom:
-              secretKeyRef:
-                key: password
-                name: github-secret-token 
-          ```
-      - After you re-deploy the yaml file, lets check the Jenkins Pod to verify our secret is in fact set.
+  - Create a `secret` using `kubectl` on your master node:
 
-        ```Bash
-        # Run the command to check the Pod environmental variables
-        kubectl exec -it -n jenkins jenkins-deployment-6d7f9bfddb-n7khn -- printenv | grep -i token
-        # We verify that the Jenkins Pod has picked up our environmental variable
-        SECRET_TOKEN=1a5720efa7db9f160c7716f4b624a789973011ec54b1ee284177f19989d35e13a98eef87b288691e493b99333fa9d9780ee08f576e971b72bd41f586f3a49b2a
-        ```
-          
-          - ***Please keep in mind you can edit these values at any time on your server or Github. If you setup your secret token post install `Please delete the current running pod for the new config to take affect as a new Pod is create.`***
-      
-  - SSL verificatio: If your "Payload URL" is a secure site (HTTPS), you will have the option to configure the SSL verification settings. If your "Payload URL" is not secure (HTTP), GitHub will not display this option. 
-  - Active: By default, webhook deliveries are "Active." You can choose to disable the delivery of webhook payloads by deselecting "Active."
-  - Events: Events are at the core of webhooks. These webhooks fire whenever a certain action is taken on the repository, which your server's payload URL intercepts and acts upon.
-  - Wildcard event: To configure a webhook for all events, use the wildcard (*) character to specify the webhook events.
+    ```bash
+    # Create a secret with the above random secret
+    $ kubectl create secret generic github-secret-token \
+    --type=kubernetes.io/basic-auth --namespace=jenkins \
+    --from-literal=username=github-secret-token \
+    --from-literal=password="1a5720efa7db9f160c7716f4b624a789973011ec54b1ee284177f19989d35e13a98eef87b288691e493b99333fa9d9780ee08f576e971b72bd41f586f3a49b2a"   
+    secret/github-secret-token created       
+    ```
+
+  - Next, add an environment variable context in the [jenkins-deployment.yaml](./bare/jenkins-deployment.yaml) file to access your secret within the `Jenkins Pod` as an environmental variable. Kubernetes will encrypt your secret token and expose your token in the Pod as an environmental variable.
+  - Per Github the name of your `secret token` must be set to [SECRET_TOKEN](https://docs.github.com/en/developers/webhooks-and-events/securing-your-webhooks#setting-your-secret-token).
+
+      ```yaml
+      env:
+      # Per Github the name of your secret token must be "SECRET_TOKEN"
+      - name: SECRET_TOKEN  # The Github access token secret
+        valueFrom:
+          secretKeyRef:
+            key: password
+            name: github-secret-token 
+      ```
+
+  - After you re-deploy the yaml file, lets check the Jenkins Pod to verify our secret is in fact set.
+
+    ```Bash
+    # Run the command to check the Pod environmental variables
+    kubectl exec -it -n jenkins jenkins-deployment-6d7f9bfddb-n7khn -- printenv | grep -i token
+    # We verify that the Jenkins Pod has picked up our environmental variable
+    SECRET_TOKEN=1a5720efa7db9f160c7716f4b624a789973011ec54b1ee284177f19989d35e13a98eef87b288691e493b99333fa9d9780ee08f576e971b72bd41f586f3a49b2a
+    ```
+
+  - ***Please keep in mind you can edit these values at any time on your server or Github. If you setup your secret token post install `Please delete the current running pod for the new config to take affect as a new Pod is create.`***
+  
+- SSL verificatio: If your "Payload URL" is a secure site (HTTPS), you will have the option to configure the SSL verification settings. If your "Payload URL" is not secure (HTTP), GitHub will not display this option.
+- Active: By default, webhook deliveries are "Active." You can choose to disable the delivery of webhook payloads by deselecting "Active."
+- Events: Events are at the core of webhooks. These webhooks fire whenever a certain action is taken on the repository, which your server's payload URL intercepts and acts upon.
+- Wildcard event: To configure a webhook for all events, use the wildcard (*) character to specify the webhook events.
+
 <br/>
 
 You can install webhooks on an organization or on a specific repository. To set up a webhook, go to the settings page of your repository or organization. From there, click:
 
   1. `[Webhooks] --> [Add webhook]`
 
-  2.  Fill out the form as follows:
+  2. Fill out the form as follows:
   
       ```yaml
       Payload URL: https://<your/server/url>/github-webhook/
@@ -152,7 +166,7 @@ You can install webhooks on an organization or on a specific repository. To set 
       - Pushes
       ```
 
-  - Alternatively, you can choose to build and manage a webhook through the [Webhooks API](https://docs.github.com/en/rest/reference/repos#hooks).
+- Alternatively, you can choose to build and manage a webhook through the [Webhooks API](https://docs.github.com/en/rest/reference/repos#hooks).
 
 That's it, now Github will be able to send POST events to your server. For help setting up your server see [Configuring your server to receive payloads](https://docs.github.com/en/developers/webhooks-and-events/configuring-your-server-to-receive-payloads) for more details.  
 
@@ -165,6 +179,7 @@ The easy way to update the Jenkins time server is from the `Jenkins Script Conso
 - [Manage Jenkins] --> [Script Console]
 
 This method works on a live system without the need for a restart. This can also be included in a Post-initialization script to make it permanent.
+
 ```groovy
 System.setProperty('org.apache.commons.jelly.tags.fmt.timeZone', 'America/New_York')
 ```
@@ -172,12 +187,13 @@ System.setProperty('org.apache.commons.jelly.tags.fmt.timeZone', 'America/New_Yo
 ---
 
 ## <h2><a href="https://www.guru99.com/create-users-manage-permissions.html#2">User Role Permissions:</a> Securing Jenkins</h2>
+
 <br/>
 
-
-```
+```TEXT
 In the default configuration of Jenkins 1.x, Jenkins does not perform any security checks. This means the ability of Jenkins to launch processes and access local files are available to anyone who can access Jenkins web UI and some more.
 ```
+
 You should lock down access to Jenkins UI so that users are authenticated and the appropriate set of permissions are given to them. This setting is controlled mainly by two axes:
 
 - Security Realm, which determines users and their passwords, as well as what groups the users belong to.
@@ -185,8 +201,6 @@ You should lock down access to Jenkins UI so that users are authenticated and th
 - Authorization Strategy, which determines who has access to what.
 
 Jenkins provides several options for securing your Jenkins node.
-
-
 
 - [Quick and Simple Security](https://wiki.jenkins.io/display/JENKINS/Quick+and+Simple+Security) --- if you are running Jenkins like java -jar jenkins.war and only need a very simple setup
 
@@ -209,15 +223,14 @@ The [Matrix Authorization Strategy](https://plugins.jenkins.io/matrix-auth/) all
 The plugin can be downloaded from the `Manage Plugins` console:
 
 - `[Manage Jenkins] --> [Manage Plugins] --> (select plugins)`
-    - [Matrix Authorization Strategy](https://plugins.jenkins.io/matrix-auth/)
+  - [Matrix Authorization Strategy](https://plugins.jenkins.io/matrix-auth/)
 
-### Setting up `Matrix-based Security`:
+### Setting up `Matrix-based Security:`
 
 1. Goto `[Manage Jenkins] --> [Configure Global Security] --> [Authorization]`, select:
 
     - `Project-based Matrix Authoriztion Strategy`: this strategy offers matrix based security at the project level and offers granular access permissions.
     - Configute this setting according to your needs.
-      
 
 ---
 
@@ -233,12 +246,15 @@ To create an access token, login to [Github.com](https://github.com) and goto:
 
 Add a note for your token and select:
 
-- repo - Full control of private repositories 
-- user <br/>|__ read:user - Read ALL user profile data <br/>|__ user:email - Access user email addresses (read-only) 
+- repo - Full control of private repositories
+- user
+<br/>
+|__ read:user - Read ALL user profile data
+<br/>
+|__ user:email - Access user email addresses (read-only)
+
 - *Optional: workflow - Update GitHub Action workflows*
- 
+
 ***Note: Copy your `Auth Token` in a safe place for use in `Jenkins`.  Use the token to create a `Username & Password` credentials in Jenkins credentials manager and give it a discriptive name such as, `"github-access-token"`.***
 
 Now you will use these credentials to access Github during build job runtime events.
-
----
